@@ -9,7 +9,11 @@ public class TranscriptController {
     public ResponseEntity<String> receiveTranscript(@RequestBody TranscriptRequest request) {
         String userSpeech = request.getTranscript();
 
-        System.out.println("\n[Java Backend] Received text from Python: " + userSpeech);
+        if (request.isFinal()) {
+            System.out.println("\n[Java Backend] Final session transcript from Python: " + userSpeech);
+        } else {
+            System.out.println("\n[Java Backend] Received text chunk from Python: " + userSpeech);
+        }
         return ResponseEntity.ok("Text successfully received by Java");
     }
 }
