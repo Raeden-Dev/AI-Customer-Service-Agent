@@ -1,0 +1,34 @@
+{
+  "debugLevel": 2,
+  "apiKey": "AIzaSyAOo8PjLMClA2AAjYC-Nf7lMVV4LP2yTu0",
+  "aiModel": "gemini-2.5-flash",
+  "allowAiResponse": true,
+  "sttLanguage": "en-US",
+  "pauseThreshold": 1.5,
+  "phraseThreshold": 0.3,
+  "nonSpeakingDuration": 0.5,
+  "ambientNoiseAdjustment": 3.0,
+  "supportedLanguages": {
+    "bn-BD": {
+      "name": "Bangla",
+      "aliases": [
+        "bangla",
+        "bengali",
+        "বাংলা",
+        "বাংলায়"
+      ],
+      "pleaseWait": "Please wait a few seconds while I switch to Bangla...",
+      "ready": "Ready. আপনি এখন বাংলায় কথা বলতে পারেন।"
+    },
+    "en-US": {
+      "name": "English",
+      "aliases": [
+        "english",
+        "ইংরেজি",
+        "ইংরাজি"
+      ],
+      "pleaseWait": "Please wait a few seconds while I switch to English...",
+      "ready": "Ready. You can now speak in English."
+    }
+  }
+}

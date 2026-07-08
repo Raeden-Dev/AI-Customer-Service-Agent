@@ -1,0 +1,25 @@
+# --- Java / Maven ---
+target/
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- App-generated ---
+logs/
+*.class
+*.lst

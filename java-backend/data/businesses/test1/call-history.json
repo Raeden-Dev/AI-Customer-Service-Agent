@@ -1,0 +1,154 @@
+{
+  "totalCalls": 3,
+  "lastCallDate": "09/07/2026 05:30:13",
+  "callList": [
+    {
+      "callId": "16fcaf92-5823-49b2-842a-54f1cdb2c63a",
+      "customerId": "unknown",
+      "startTime": "09/07/2026 04:42:13",
+      "endTime": "09/07/2026 04:42:30",
+      "transcript": "hello Can",
+      "aiTranscript": "Sorry, I encountered an error connecting to the AI.",
+      "callType": "inbound",
+      "messages": [
+        {
+          "role": "USER",
+          "content": "hello Can",
+          "timestamp": "09/07/2026 04:42:20"
+        },
+        {
+          "role": "AI",
+          "content": "Sorry, I encountered an error connecting to the AI.",
+          "timestamp": "09/07/2026 04:42:20"
+        }
+      ]
+    },
+    {
+      "callId": "e4653a43-975f-4c65-8458-f1bdae980497",
+      "customerId": "unknown",
+      "startTime": "09/07/2026 04:44:06",
+      "endTime": "09/07/2026 04:46:00",
+      "transcript": "hello can you can you switch to Bangla সুইচ টু ইংলিশ এগেইন আপনি কি এখন আমার কথা বুঝতে পারতেছেন ইংলিশে সুইচ করেন তো এখন বাংলাতে সুইচ করে না প্লিজ সুইচ টু বাংলা তুমি এখন আমার কথা বুঝতে পারছেন রিসোর্স একজাস্ট সরি",
+      "aiTranscript": "Hello! I can certainly help you. What can I do for you today? Please wait a few seconds while I switch to Bangla... Ready. আপনি এখন বাংলায় কথা বলতে পারেন। Certainly. You would like to switch back to English.\n\nIs there anything else I can help you with today? হ্যাঁ, আমি বুঝতে পারছি। অবশ্যই। আমি এখন থেকে ইংরেজিতে কথা বলব। আপনার কিভাবে সাহায্য করতে পারি? I apologize, but I am unable to switch to Bengali. I can only communicate in English.\n\nPlease let me know how I can assist you in English. অবশ্যই। কিভাবে আপনাকে সাহায্য করতে পারি? Sorry, I encountered an error connecting to the AI.",
+      "callType": "inbound",
+      "messages": [
+        {
+          "role": "USER",
+          "content": "hello can you",
+          "timestamp": "09/07/2026 04:44:15"
+        },
+        {
+          "role": "AI",
+          "content": "Hello! I can certainly help you. What can I do for you today?",
+          "timestamp": "09/07/2026 04:44:16"
+        },
+        {
+          "role": "USER",
+          "content": "can you switch to Bangla",
+          "timestamp": "09/07/2026 04:44:29"
+        },
+        {
+          "role": "AI",
+          "content": "Please wait a few seconds while I switch to Bangla...",
+          "timestamp": "09/07/2026 04:44:29"
+        },
+        {
+          "role": "SYSTEM",
+          "content": "Switching STT language from en-US to bn-BD...",
+          "timestamp": "09/07/2026 04:44:29"
+        },
+        {
+          "role": "AI",
+          "content": "Ready. আপনি এখন বাংলায় কথা বলতে পারেন।",
+          "timestamp": "09/07/2026 04:44:33"
+        },
+        {
+          "role": "USER",
+          "content": "সুইচ টু ইংলিশ এগেইন",
+          "timestamp": "09/07/2026 04:44:40"
+        },
+        {
+          "role": "AI",
+          "content": "Certainly. You would like to switch back to English.\n\nIs there anything else I can help you with today?",
+          "timestamp": "09/07/2026 04:44:41"
+        },
+        {
+          "role": "USER",
+          "content": "আপনি কি এখন আমার কথা বুঝতে পারতেছেন",
+          "timestamp": "09/07/2026 04:45:04"
+        },
+        {
+          "role": "AI",
+          "content": "হ্যাঁ, আমি বুঝতে পারছি।",
+          "timestamp": "09/07/2026 04:45:06"
+        },
+        {
+          "role": "USER",
+          "content": "ইংলিশে সুইচ করেন তো এখন",
+          "timestamp": "09/07/2026 04:45:14"
+        },
+        {
+          "role": "AI",
+          "content": "অবশ্যই। আমি এখন থেকে ইংরেজিতে কথা বলব। আপনার কিভাবে সাহায্য করতে পারি?",
+          "timestamp": "09/07/2026 04:45:16"
+        },
+        {
+          "role": "USER",
+          "content": "বাংলাতে সুইচ করে না",
+          "timestamp": "09/07/2026 04:45:22"
+        },
+        {
+          "role": "AI",
+          "content": "I apologize, but I am unable to switch to Bengali. I can only communicate in English.\n\nPlease let me know how I can assist you in English.",
+          "timestamp": "09/07/2026 04:45:24"
+        },
+        {
+          "role": "USER",
+          "content": "প্লিজ সুইচ টু বাংলা",
+          "timestamp": "09/07/2026 04:45:37"
+        },
+        {
+          "role": "AI",
+          "content": "অবশ্যই। কিভাবে আপনাকে সাহায্য করতে পারি?",
+          "timestamp": "09/07/2026 04:45:38"
+        },
+        {
+          "role": "USER",
+          "content": "তুমি এখন আমার কথা বুঝতে পারছেন",
+          "timestamp": "09/07/2026 04:45:46"
+        },
+        {
+          "role": "AI",
+          "content": "Sorry, I encountered an error connecting to the AI.",
+          "timestamp": "09/07/2026 04:45:47"
+        },
+        {
+          "role": "USER",
+          "content": "রিসোর্স একজাস্ট সরি",
+          "timestamp": "09/07/2026 04:45:57"
+        }
+      ]
+    },
+    {
+      "callId": "b85e56f4-a3d0-4ba2-a2af-ff8d3510aa01",
+      "customerId": "unknown",
+      "startTime": "09/07/2026 05:30:13",
+      "endTime": "09/07/2026 05:30:33",
+      "transcript": "hello can you hear",
+      "aiTranscript": "Sorry, I encountered an error connecting to the AI.",
+      "callType": "inbound",
+      "messages": [
+        {
+          "role": "USER",
+          "content": "hello can you hear",
+          "timestamp": "09/07/2026 05:30:28"
+        },
+        {
+          "role": "AI",
+          "content": "Sorry, I encountered an error connecting to the AI.",
+          "timestamp": "09/07/2026 05:30:29"
+        }
+      ]
+    }
+  ]
+}

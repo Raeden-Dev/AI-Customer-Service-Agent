@@ -5,6 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5dc0b925-1abb-4bd5-8255-8a97fcd96b03" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../python-scripts/ai_agent.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../python-scripts/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../python-scripts/stt_sender.py" beforeDir="false" afterPath="$PROJECT_DIR$/../python-scripts/stt_sender.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -21,31 +23,47 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Class" />
+        <option value="Enum" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Raeden-Dev"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Raeden-Dev&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Raeden-Dev/AI-Customer-Service-Agent.git",
-    "accountId": "c5f39ba4-4799-425d-aa5c-69b1b24299ab"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Raeden-Dev/AI-Customer-Service-Agent.git&quot;,
+    &quot;accountId&quot;: &quot;c5f39ba4-4799-425d-aa5c-69b1b24299ab&quot;
   }
-}]]></component>
+}</component>
   <component name="MavenImportPreferences">
     <option name="explicitlyEnabledProfiles" value="native,nativeTest" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="3G9TdP9HJZNqKcXFJrQp3W2TrTK" />
+  <component name="ProjectSessionTemplates">
+    <option name="panelTemplate">
+      <template>
+        <option name="modeId" value="Agent" />
+        <option name="model">
+          <model>
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="auto" />
+          </model>
+        </option>
+        <option name="targetType" value="BACKGROUND" />
+        <option name="worktreeMode" value="WORKSPACE" />
+      </template>
+    </option>
+  </component>
   <component name="ProjectViewState">
     <option name="showLibraryContents" value="true" />
   </component>
@@ -61,7 +79,7 @@
     "copilot.chat.legacySessionMetadata.migrated": "true",
     "git-widget-placeholder": "main",
     "onboarding.tips.debug.path": "F:/3.GitHub_ORS/AI-Customer-Service-Agent/java-backend/src/main/java/com/ulab/agent/Main.java",
-    "settings.editor.selected.configurable": "vcs.Git"
+    "settings.editor.selected.configurable": "copyright"
   }
 }]]></component>
   <component name="RunManager">
