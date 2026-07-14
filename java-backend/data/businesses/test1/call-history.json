@@ -1,6 +1,6 @@
 {
-  "totalCalls": 3,
-  "lastCallDate": "09/07/2026 05:30:13",
+  "totalCalls": 4,
+  "lastCallDate": "09/07/2026 18:53:57",
   "callList": [
     {
       "callId": "16fcaf92-5823-49b2-842a-54f1cdb2c63a",
@@ -147,6 +147,57 @@
           "role": "AI",
           "content": "Sorry, I encountered an error connecting to the AI.",
           "timestamp": "09/07/2026 05:30:29"
+        }
+      ]
+    },
+    {
+      "callId": "3b225d5b-9638-4b35-b2cb-58ff23d62a03",
+      "customerId": "unknown",
+      "startTime": "09/07/2026 18:53:57",
+      "endTime": "09/07/2026 18:54:59",
+      "transcript": "hello this is muthala jiju speaking can you hear me Mukta jiju can you help mothala jiju on how to masturbate properly can you help a muthala jiju to enquire about his problem reported",
+      "aiTranscript": "Hello Muthala Jiju, yes, I can hear you clearly. How may I assist you today? Sorry, I encountered an error connecting to the AI. Sorry, I encountered an error connecting to the AI. Sorry, I encountered an error connecting to the AI.",
+      "callType": "inbound",
+      "messages": [
+        {
+          "role": "USER",
+          "content": "hello this is muthala jiju speaking can you hear me",
+          "timestamp": "09/07/2026 18:54:10"
+        },
+        {
+          "role": "AI",
+          "content": "Hello Muthala Jiju, yes, I can hear you clearly. How may I assist you today?",
+          "timestamp": "09/07/2026 18:54:12"
+        },
+        {
+          "role": "USER",
+          "content": "Mukta jiju can you help mothala jiju on how to masturbate properly",
+          "timestamp": "09/07/2026 18:54:29"
+        },
+        {
+          "role": "AI",
+          "content": "Sorry, I encountered an error connecting to the AI.",
+          "timestamp": "09/07/2026 18:54:30"
+        },
+        {
+          "role": "USER",
+          "content": "can you help a muthala jiju to enquire about his problem",
+          "timestamp": "09/07/2026 18:54:46"
+        },
+        {
+          "role": "AI",
+          "content": "Sorry, I encountered an error connecting to the AI.",
+          "timestamp": "09/07/2026 18:54:46"
+        },
+        {
+          "role": "USER",
+          "content": "reported",
+          "timestamp": "09/07/2026 18:54:55"
+        },
+        {
+          "role": "AI",
+          "content": "Sorry, I encountered an error connecting to the AI.",
+          "timestamp": "09/07/2026 18:54:55"
         }
       ]
     }
