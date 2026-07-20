@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Customer Service Agent — Internal Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+:root{
+  /* --- 3 elevation levels --- */
+  --page:#0d1117;
+  --card:#161b22;
+  --raised:#1c2128;
+  --border:#30363d;
+  --border-soft:#242a31;
+  /* --- semantic accents --- */
+  --blue:#58a6ff;   /* primary / neutral data */
+  --amber:#f0a500;  /* risk / warning */
+  --emerald:#3fb950;/* opportunity / positive */
+  --violet:#bc8cff; /* unique / critical */
+  --slate:#8b949e;  /* supporting / muted */
+  --text:#e6edf3;
+  --text-dim:#c2ccd6;
+  --shadow:0 8px 24px rgba(1,4,9,.55);
+  --shadow-soft:0 2px 10px rgba(1,4,9,.4);
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --display:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--page);color:var(--text);
+  font-family:var(--body);line-height:1.6;font-size:16px;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums lining-nums;
+}
+.num,.kpi-value,table,.stat,code,.mono{font-variant-numeric:tabular-nums lining-nums}
+h1,h2,h3,h4{font-family:var(--display);font-weight:700;line-height:1.15;letter-spacing:-.01em}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:var(--mono);font-size:.86em}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+
+/* ---------- scroll progress rail (signature-supporting) ---------- */
+#progress-rail{position:fixed;top:0;left:0;height:3px;width:0%;
+  background:linear-gradient(90deg,var(--blue),var(--violet));z-index:120;transition:width .1s linear}
+
+/* ---------- top nav ---------- */
+nav.top{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.86);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+nav.top .inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;
+  padding:10px 22px;overflow-x:auto;scrollbar-width:thin}
+nav.top .brand{font-family:var(--display);font-weight:700;font-size:.95rem;white-space:nowrap;
+  color:var(--text);display:flex;align-items:center;gap:8px;padding-right:6px}
+nav.top .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--emerald);
+  box-shadow:0 0 0 0 rgba(63,185,80,.6);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,185,80,.5)}70%{box-shadow:0 0 0 7px rgba(63,185,80,0)}100%{box-shadow:0 0 0 0 rgba(63,185,80,0)}}
+nav.top a.link{color:var(--slate);font-size:.82rem;white-space:nowrap;padding:5px 9px;border-radius:7px;
+  font-weight:500;transition:color .15s,background .15s}
+nav.top a.link:hover{color:var(--text);text-decoration:none;background:var(--raised)}
+nav.top a.link.active{color:var(--blue);background:rgba(88,166,255,.1)}
+@media (prefers-reduced-motion:reduce){nav.top .brand .dot{animation:none}}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+section{scroll-margin-top:70px;margin:34px 0}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--slate);margin:0 0 6px}
+.sec-title{font-size:1.55rem;margin:0 0 4px}
+.sec-sub{color:var(--slate);margin:0 0 18px;font-size:.96rem;max-width:70ch}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 30px;border-bottom:1px solid var(--border-soft)}
+.hero .kicker{font-family:var(--mono);font-size:.75rem;letter-spacing:.22em;text-transform:uppercase;color:var(--violet)}
+.hero h1{font-size:clamp(2.1rem,5vw,3.5rem);margin:14px 0 8px;
+  background:linear-gradient(120deg,#e6edf3 20%,#58a6ff 60%,#bc8cff 95%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--slate);font-family:var(--mono);
+  font-size:.8rem;margin:16px 0 22px}
+.hero .meta b{color:var(--text)}
+.hero .summary{max-width:78ch;color:var(--text-dim);font-size:1.02rem}
+.hero .summary strong{color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:22px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:.76rem;color:var(--slate);font-family:var(--mono)}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px;
+  box-shadow:var(--shadow-soft);transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:#3d444d;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+
+/* ---------- KPI ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.kpi{background:var(--raised);border:1px solid var(--border);border-radius:12px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.kpi.v::before{background:var(--violet)}.kpi.e::before{background:var(--emerald)}.kpi.a::before{background:var(--amber)}.kpi.s::before{background:var(--slate)}
+.kpi .kpi-value{font-family:var(--display);font-weight:700;font-size:2.15rem;line-height:1;color:var(--text)}
+.kpi .kpi-label{color:var(--slate);font-size:.78rem;margin-top:8px;font-family:var(--mono)}
+
+/* ---------- key takeaways collapsible ---------- */
+details.takeaways{background:var(--raised);border:1px solid var(--border);border-left:3px solid var(--blue);
+  border-radius:10px;margin:0 0 20px;overflow:hidden}
+details.takeaways>summary{cursor:pointer;list-style:none;padding:13px 18px;font-family:var(--mono);
+  font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--blue);display:flex;
+  align-items:center;justify-content:space-between;user-select:none}
+details.takeaways>summary::-webkit-details-marker{display:none}
+details.takeaways>summary::after{content:"▸";transition:transform .2s;color:var(--slate)}
+details.takeaways[open]>summary::after{transform:rotate(90deg)}
+details.takeaways ul{margin:0;padding:4px 20px 18px 38px}
+details.takeaways li{margin:7px 0;color:var(--text-dim);font-size:.93rem}
+details.takeaways li::marker{color:var(--blue)}
+
+/* ---------- callouts ---------- */
+.callout{border-radius:10px;padding:14px 18px;margin:16px 0;background:var(--raised);
+  border:1px solid var(--border-soft);border-left:4px solid var(--slate);font-size:.93rem;color:var(--text-dim)}
+.callout .tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+  display:block;margin-bottom:5px;font-weight:600}
+.callout.risk{border-left-color:var(--amber)}.callout.risk .tag{color:var(--amber)}
+.callout.opp{border-left-color:var(--emerald)}.callout.opp .tag{color:var(--emerald)}
+.callout.uniq{border-left-color:var(--violet)}.callout.uniq .tag{color:var(--violet)}
+.callout.info{border-left-color:var(--blue)}.callout.info .tag{color:var(--blue)}
+.callout strong{color:var(--text)}
+.callout code{background:#0d1117;padding:1px 5px;border-radius:4px;border:1px solid var(--border-soft)}
+
+/* ---------- caption ---------- */
+.caption{font-size:.86rem;color:var(--slate);margin-top:14px;padding-top:12px;border-top:1px dashed var(--border-soft)}
+.caption b{color:var(--text);display:block;margin-top:4px;font-weight:600;font-family:var(--body)}
+
+/* ---------- tables ---------- */
+.table-scroll{overflow-x:auto;border-radius:10px;border:1px solid var(--border);margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:520px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--border-soft);vertical-align:top}
+thead th{background:var(--raised);color:var(--slate);font-family:var(--mono);font-size:.72rem;
+  letter-spacing:.08em;text-transform:uppercase;font-weight:600;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(88,166,255,.04)}
+td code{color:var(--text);font-size:.82em}
+.pill{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.pill.get{background:rgba(63,185,80,.14);color:var(--emerald);border:1px solid rgba(63,185,80,.3)}
+.pill.post{background:rgba(88,166,255,.14);color:var(--blue);border:1px solid rgba(88,166,255,.3)}
+.pill.hub{background:rgba(188,140,255,.16);color:var(--violet);border:1px solid rgba(188,140,255,.34)}
+.cell-blue{color:var(--blue)}.cell-violet{color:var(--violet);font-weight:600}.cell-amber{color:var(--amber)}.cell-emerald{color:var(--emerald)}
+
+/* ---------- code / tree ---------- */
+pre.tree{background:#0b0f14;border:1px solid var(--border);border-radius:10px;padding:18px 20px;
+  overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.65;color:var(--text-dim);margin:0}
+pre.tree .d{color:var(--blue)}
+pre.tree .f{color:var(--text)}
+pre.tree .c{color:var(--slate)}
+pre.tree .hi{color:var(--violet);font-weight:600}
+
+/* ---------- chart holders ---------- */
+.chart-box{position:relative;height:300px;width:100%}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.two-col{grid-template-columns:1fr}}
+
+/* ---------- mermaid ---------- */
+.mermaid-wrap{overflow-x:auto;background:#0b0f14;border:1px solid var(--border);border-radius:10px;padding:14px}
+.mermaid{min-width:560px;display:flex;justify-content:center}
+.mermaid svg{max-width:100%;height:auto}
+
+/* ---------- manager/model detail cards ---------- */
+.detail{background:var(--raised);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.detail h4{margin:0 0 3px;font-size:1.05rem;color:var(--text)}
+.detail .sig{font-family:var(--mono);font-size:.72rem;color:var(--slate);margin-bottom:12px}
+.detail ul{margin:8px 0 0;padding-left:0;list-style:none}
+.detail li{font-family:var(--mono);font-size:.78rem;padding:5px 0;border-top:1px solid var(--border-soft);color:var(--text-dim)}
+.detail li:first-child{border-top:none}
+.detail li .m{color:var(--blue)}
+.detail li .r{color:var(--slate)}
+.fieldlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fieldlist span{font-family:var(--mono);font-size:.72rem;background:#0d1117;border:1px solid var(--border-soft);
+  padding:3px 8px;border-radius:6px;color:var(--text-dim)}
+.fieldlist span em{color:var(--slate);font-style:normal}
+
+/* ---------- signature: live-call pipeline ---------- */
+.pipeline{position:relative;margin:8px 0 6px;padding:24px 8px}
+.pipeline .rail{position:relative;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.stage{flex:1 1 120px;min-width:120px;background:var(--raised);border:1px solid var(--border);border-radius:10px;
+  padding:12px 12px;text-align:center;position:relative;z-index:2}
+.stage .ic{font-size:1.25rem}
+.stage .nm{font-family:var(--display);font-weight:600;font-size:.82rem;margin-top:4px;color:var(--text)}
+.stage .sub{font-family:var(--mono);font-size:.64rem;color:var(--slate);margin-top:3px;word-break:break-word}
+.stage.hub{border-color:var(--violet);box-shadow:0 0 0 1px rgba(188,140,255,.3),0 0 22px rgba(188,140,255,.14)}
+.stage.hub .nm{color:var(--violet)}
+.stage.ai-s{border-color:rgba(63,185,80,.4)}
+.flowline{height:2px;background:linear-gradient(90deg,var(--border),var(--slate),var(--border));
+  position:absolute;left:2%;right:2%;top:50%;z-index:1}
+.packet{position:absolute;top:calc(50% - 5px);left:0;width:10px;height:10px;border-radius:50%;
+  background:var(--blue);box-shadow:0 0 12px 3px rgba(88,166,255,.7);z-index:1;
+  animation:travel 6s cubic-bezier(.6,.05,.3,.95) infinite}
+.packet.ai{background:var(--emerald);box-shadow:0 0 12px 3px rgba(63,185,80,.7);animation-delay:3s}
+@keyframes travel{0%{left:2%;opacity:0}6%{opacity:1}94%{opacity:1}100%{left:98%;opacity:0}}
+@media (prefers-reduced-motion:reduce){.packet{animation:none;display:none}}
+@media (max-width:760px){.flowline,.packet{display:none}}
+
+/* ---------- back to top ---------- */
+#toTop{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:50%;
+  background:var(--raised);border:1px solid var(--border);color:var(--blue);font-size:1.1rem;cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .2s;box-shadow:var(--shadow);z-index:90}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{transform:translateY(-3px);border-color:var(--blue)}
+
+footer{border-top:1px solid var(--border-soft);margin-top:50px;padding:26px 0 60px;color:var(--slate);font-size:.8rem}
+footer .mono{font-family:var(--mono);font-size:.74rem}
+
+hr.soft{border:none;border-top:1px solid var(--border-soft);margin:22px 0}
+.two-up{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.two-up{grid-template-columns:1fr}}
+.small{font-size:.82rem;color:var(--slate)}
+</style>
+</head>
+<body>
+<div id="progress-rail"></div>
+
+<nav class="top">
+  <div class="inner">
+    <span class="brand"><span class="dot"></span>ACSA · Architecture</span>
+    <a class="link" href="#overview">Overview</a>
+    <a class="link" href="#structure">Structure</a>
+    <a class="link" href="#classmap">Class Map</a>
+    <a class="link" href="#managers">Managers</a>
+    <a class="link" href="#models">Models</a>
+    <a class="link" href="#api">REST API</a>
+    <a class="link" href="#flow">Live Call Flow</a>
+    <a class="link" href="#intercept">Reading Dialogs</a>
+    <a class="link" href="#config">Configuration</a>
+    <a class="link" href="#storage">Storage</a>
+    <a class="link" href="#extend">Extending It</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ============== HERO ============== -->
+  <header class="hero" id="top">
+    <div class="kicker">Internal Architecture Report</div>
+    <h1>AI Customer Service Agent</h1>
+    <div class="meta">
+      <span>Generated <b>2026-07-20</b></span>
+      <span>App version <b>1.0.0</b></span>
+      <span><b>11</b> sections</span>
+      <span><b>26</b> Java classes · <b>3</b> Python modules</span>
+      <span>~<b>2,359</b> lines of code</span>
+    </div>
+    <p class="summary">
+      This is a <strong>voice-driven customer-service agent</strong> built from two cooperating runtimes.
+      A <strong>Spring Boot (Java 21)</strong> application is the brain and control plane: it runs an
+      operator terminal (<code>agent&gt;</code>), holds all state through four managers, persists everything
+      as JSON, and exposes a small REST API on <code>localhost:8080/api</code>. A <strong>Python subprocess</strong>
+      is the ears and mouth: it captures microphone audio, transcribes speech via Google STT, generates replies
+      via Google Gemini, and streams every utterance back to Java over HTTP. When you start a call, Java
+      <em>spawns</em> the Python process; when you end it, Java kills it and archives the conversation. The single
+      most important thing to know if you want to read the live conversation is that <strong>every customer line
+      and every AI line converges on one method — <code>CallManager.handleChatMessage()</code></strong> — which is
+      your primary interception point (see <a href="#intercept">Reading Dialogs</a>).
+    </p>
+    <div class="legend" aria-label="semantic color legend">
+      <span><i style="background:var(--blue)"></i>Neutral data / primary</span>
+      <span><i style="background:var(--violet)"></i>Critical / interception hub</span>
+      <span><i style="background:var(--emerald)"></i>Opportunity / positive</span>
+      <span><i style="background:var(--amber)"></i>Risk / caution</span>
+      <span><i style="background:var(--slate)"></i>Supporting detail</span>
+    </div>
+  </header>
+
+  <!-- ============== 1. OVERVIEW ============== -->
+  <section id="overview">
+    <p class="eyebrow">01 — System Overview</p>
+    <h2 class="sec-title">Two runtimes, one conversation</h2>
+    <p class="sec-sub">Java owns state, control, and persistence. Python owns audio, speech-to-text, and the LLM. They meet only over a handful of REST calls.</p>
+
+    <details class="takeaways" open>
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><b>Java = control plane.</b> Spring Boot app with an interactive operator CLI, four managers, and a 6-route REST API.</li>
+        <li><b>Python = media plane.</b> A short-lived subprocess launched per call; does mic capture, Google STT, and Gemini replies.</li>
+        <li><b>Java drives Python.</b> <code>CallManager</code> spawns <code>stt_sender.py</code> on <code>start-call</code> and terminates it on <code>end-call</code>.</li>
+        <li><b>Python pulls config, pushes dialog.</b> It <em>GETs</em> config &amp; AI settings, then <em>POSTs</em> every recognized line back to Java.</li>
+        <li><b>Everything is a JSON file.</b> No database — businesses, settings, call history, and transcripts all live under <code>data/</code>.</li>
+      </ul>
+    </details>
+
+    <div class="card">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-value">26</div><div class="kpi-label">Java classes</div></div>
+        <div class="kpi s"><div class="kpi-value">3</div><div class="kpi-label">Python modules</div></div>
+        <div class="kpi"><div class="kpi-value">4</div><div class="kpi-label">Managers</div></div>
+        <div class="kpi"><div class="kpi-value">8</div><div class="kpi-label">Domain models</div></div>
+        <div class="kpi"><div class="kpi-value">4</div><div class="kpi-label">REST controllers</div></div>
+        <div class="kpi e"><div class="kpi-value">6</div><div class="kpi-label">REST endpoints</div></div>
+        <div class="kpi"><div class="kpi-value">11</div><div class="kpi-label">Operator commands</div></div>
+        <div class="kpi v"><div class="kpi-value">7</div><div class="kpi-label">Dialog interception points</div></div>
+      </div>
+      <p class="caption">Counts of the moving parts across both runtimes; these are structural totals, not time-series metrics.
+        <b>The whole system is small and legible — four managers hold nearly all the runtime logic in ~500 lines.</b></p>
+    </div>
+
+    <div class="callout uniq">
+      <span class="tag">Unique finding · why it's built this way</span>
+      Java and Python never share memory. The <strong>only</strong> coupling is HTTP: Python calls
+      <code>GET /api/config</code> and <code>GET /api/ai-settings</code> to learn how to behave, then calls
+      <code>POST /api/chat-message</code> for every line. That clean seam is exactly what makes the live conversation easy to tap.
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 12px;font-size:1.05rem">Technology stack</h3>
+      <div class="two-up">
+        <div class="detail">
+          <h4 style="color:var(--blue)">☕ Java backend</h4>
+          <div class="sig">groupId com.ulab.agent · 1.0-SNAPSHOT</div>
+          <div class="fieldlist">
+            <span>Java <em>21</em></span><span>Spring Boot <em>3.2.4</em></span><span>spring-boot-starter-web</span>
+            <span>Embedded Tomcat <em>:8080</em></span><span>Gson <em>2.10.1</em></span><span>Maven</span>
+          </div>
+        </div>
+        <div class="detail">
+          <h4 style="color:var(--emerald)">🐍 Python scripts</h4>
+          <div class="sig">launched inside .venv by the Java process</div>
+          <div class="fieldlist">
+            <span>SpeechRecognition <em>(Google STT)</em></span><span>google-genai <em>(Gemini)</em></span>
+            <span>PyAudio <em>(mic)</em></span><span>requests</span><span>deep-translator</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 2. STRUCTURE ============== -->
+  <section id="structure">
+    <p class="eyebrow">02 — Project Structure</p>
+    <h2 class="sec-title">Where the code lives</h2>
+    <p class="sec-sub">Java source is organized by layer under <code>com.ulab.agent</code>. Runtime data and Python live as siblings of the backend.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li>Six Java layers: <code>ai</code>, <code>managers</code>, <code>models</code>, <code>stt</code>, <code>utils</code>, plus the root <code>Main</code>.</li>
+        <li><b>Models</b> is the largest layer by file count (8); <b>utils</b> is the largest by lines of code (693).</li>
+        <li><code>CallManager.java</code> (295 LOC) is the single biggest and most important file in the project.</li>
+        <li>The <code>stt</code> package holds the REST controllers even though the AI-settings controller sits in <code>ai</code>.</li>
+      </ul>
+    </details>
+
+    <div class="card">
+      <pre class="tree"><span class="c"># repository root</span>
+<span class="d">AI-Customer-Service-Agent/</span>
+├── <span class="d">java-backend/</span>              <span class="c">Spring Boot app (the brain)</span>
+│   ├── <span class="f">pom.xml</span>
+│   ├── <span class="d">data/</span>                  <span class="c">JSON persistence (created at runtime)</span>
+│   │   ├── <span class="f">config.json</span>        <span class="c">global Config</span>
+│   │   └── <span class="d">businesses/&lt;name&gt;/</span>  <span class="c">per-business state</span>
+│   │       ├── <span class="f">business.json</span>
+│   │       ├── <span class="f">ai-settings.json</span>
+│   │       ├── <span class="f">call-history.json</span>
+│   │       └── <span class="d">transcripts/</span><span class="f">&lt;callId&gt;.txt</span>
+│   └── <span class="d">src/main/java/com/ulab/agent/</span>
+│       ├── <span class="f">Main.java</span>            <span class="c">@SpringBootApplication entry</span>
+│       ├── <span class="d">ai/</span>                 <span class="c">AISettingsController, Instructions</span>
+│       ├── <span class="d">managers/</span>           <span class="hi">Config/Business/AISettings/Call managers</span>
+│       ├── <span class="d">models/</span>            <span class="c">8 data classes (POJOs)</span>
+│       ├── <span class="d">stt/</span>               <span class="c">REST controllers + request DTOs</span>
+│       └── <span class="d">utils/</span>             <span class="c">Console, ConsoleTerminal, File/Path/Time, Lang</span>
+└── <span class="d">python-scripts/</span>            <span class="c">the ears &amp; mouth</span>
+    ├── <span class="f">stt_sender.py</span>          <span class="hi">mic loop + language switching</span>
+    ├── <span class="f">ai_agent.py</span>            <span class="c">Gemini prompt + response</span>
+    ├── <span class="f">config.py</span>             <span class="c">bootstrap + fetches Java config</span>
+    └── <span class="f">requirements.txt</span></pre>
+      <p class="caption">The on-disk layout: layered Java source on the left branch, the Python media runtime as a sibling.
+        <b>Business state is namespaced per-folder, so adding a business is just a new directory under <code>data/businesses/</code>.</b></p>
+    </div>
+
+    <div class="two-col" style="margin-top:16px">
+      <div class="card">
+        <h3 style="margin:0 0 4px;font-size:1rem">Java files by layer</h3>
+        <p class="small" style="margin:0 0 10px">26 files total</p>
+        <div class="chart-box"><canvas id="donutFiles"></canvas></div>
+        <p class="caption">Share of the 26 Java source files across the six layers.
+          <b>Models and utils together are over half the files, but they're mostly plain data holders and helpers.</b></p>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 4px;font-size:1rem">Lines of code by layer</h3>
+        <p class="small" style="margin:0 0 10px">1,950 Java LOC</p>
+        <div class="chart-box"><canvas id="barLoc"></canvas></div>
+        <p class="caption">Total lines per layer, sorted largest first.
+          <b>Utils carries the most code (693) — file I/O and the operator terminal — while the four managers hold the logic in 502.</b></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 3. CLASS MAP ============== -->
+  <section id="classmap">
+    <p class="eyebrow">03 — Class Map</p>
+    <h2 class="sec-title">How the classes wire together</h2>
+    <p class="sec-sub">Spring injects the managers; the operator terminal and the controllers both call into them; Python reaches the same managers from outside over REST.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><code>Main</code> boots Spring, then hands the context to <code>ConsoleTerminal</code>, which pulls all four managers out.</li>
+        <li>Controllers are thin: each just forwards to one manager method — no logic of its own.</li>
+        <li><code>AISettingsManager</code> and <code>CallManager</code> both depend on <code>BusinessManager</code> to know the active business.</li>
+        <li>Python is wired in <b>only</b> through the four REST controllers — never directly to a manager or model.</li>
+      </ul>
+    </details>
+
+    <div class="card">
+      <div class="mermaid-wrap">
+        <div class="mermaid" id="mm-class">
+flowchart TB
+  Main["Main<br/>@SpringBootApplication"]:::boot
+  CT["ConsoleTerminal<br/>operator CLI (agent&gt;)"]:::boot
+  CM["ConfigManager"]:::mgr
+  BM["BusinessManager"]:::mgr
+  AM["AISettingsManager"]:::mgr
+  CALM["CallManager"]:::hub
+  CC["ConfigController"]:::api
+  AC["AISettingsController"]:::api
+  CMC["ChatMessageController"]:::api
+  TC["TranscriptController"]:::api
+  STT["stt_sender.py"]:::py
+  AIA["ai_agent.py"]:::py
+
+  Main --> CT
+  CT --> CM
+  CT --> BM
+  CT --> AM
+  CT --> CALM
+  AM --> BM
+  CALM --> BM
+  CC --> CM
+  AC --> AM
+  CMC --> CALM
+  TC --> CALM
+  CALM -. spawns subprocess .-> STT
+  STT --> AIA
+  STT -. GET /config .-> CC
+  AIA -. GET /ai-settings .-> AC
+  STT -. POST /chat-message .-> CMC
+  STT -. POST /transcript .-> TC
+
+  classDef boot fill:#1c2128,stroke:#58a6ff,color:#e6edf3;
+  classDef mgr fill:#161b22,stroke:#3fb950,color:#e6edf3;
+  classDef hub fill:#1c2128,stroke:#bc8cff,color:#e6edf3,stroke-width:2px;
+  classDef api fill:#161b22,stroke:#8b949e,color:#e6edf3;
+  classDef py fill:#12261a,stroke:#3fb950,color:#e6edf3;
+        </div>
+      </div>
+      <p class="caption">Solid arrows are in-process Java references; dashed arrows are cross-runtime HTTP calls from Python.
+        <b><code>CallManager</code> (violet) is the crossroads: the terminal drives it, a controller feeds it, and it owns the Python subprocess.</b></p>
+    </div>
+  </section>
+
+  <!-- ============== 4. MANAGERS ============== -->
+  <section id="managers">
+    <p class="eyebrow">04 — Managers</p>
+    <h2 class="sec-title">The four managers &amp; what they hold</h2>
+    <p class="sec-sub">Each manager is a Spring <code>@Component</code> — one responsibility, its own slice of state, and a small public surface.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><b>ConfigManager</b> — one global <code>Config</code>; loads/saves <code>config.json</code>; sets the console debug level.</li>
+        <li><b>BusinessManager</b> — the registry of businesses and which one is <em>active</em>; everything else keys off this.</li>
+        <li><b>AISettingsManager</b> — per-business AI persona, cached in memory, backed by <code>ai-settings.json</code>.</li>
+        <li><b>CallManager</b> — the live-call engine: starts/ends calls, owns the Python subprocess, records every message.</li>
+      </ul>
+    </details>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      <div class="detail">
+        <h4>ConfigManager <span class="pill get" style="background:none;border:none;color:var(--slate)">40 LOC</span></h4>
+        <div class="sig">holds: Config config · @PostConstruct init()</div>
+        <ul>
+          <li><span class="m">reload()</span> <span class="r">→ load/create data/config.json, apply debug level</span></li>
+          <li><span class="m">getConfig()</span> <span class="r">→ Config</span></li>
+          <li><span class="m">updateConfig(Config)</span> <span class="r">→ replace + persist + re-apply level</span></li>
+        </ul>
+      </div>
+
+      <div class="detail">
+        <h4>BusinessManager <span class="pill get" style="background:none;border:none;color:var(--slate)">101 LOC</span></h4>
+        <div class="sig">holds: Map&lt;name,Business&gt; · Business activeBusiness</div>
+        <ul>
+          <li><span class="m">reload()</span> <span class="r">→ scan businesses/*/business.json</span></li>
+          <li><span class="m">getBusiness(name)</span> <span class="r">→ Business (case-insensitive)</span></li>
+          <li><span class="m">listBusinesses()</span> <span class="r">→ List&lt;Business&gt;</span></li>
+          <li><span class="m">addBusiness(name, details)</span> <span class="r">→ new UUID + save</span></li>
+          <li><span class="m">removeBusiness(name)</span> <span class="r">→ boolean</span></li>
+          <li><span class="m">save(Business)</span> <span class="r">→ write business.json</span></li>
+          <li><span class="m">getActiveBusiness()</span> / <span class="m">setActiveBusiness(name)</span></li>
+        </ul>
+      </div>
+
+      <div class="detail">
+        <h4>AISettingsManager <span class="pill get" style="background:none;border:none;color:var(--slate)">66 LOC</span></h4>
+        <div class="sig">holds: Map&lt;name,AISettings&gt; cache · needs BusinessManager</div>
+        <ul>
+          <li><span class="m">reload()</span> <span class="r">→ clear cache, load active settings</span></li>
+          <li><span class="m">getActiveSettings()</span> <span class="r">→ AISettings (or defaults)</span></li>
+          <li><span class="m">getSettings(name)</span> <span class="r">→ cache → loadOrCreate</span></li>
+          <li><span class="m">updateActiveSettings(s)</span> <span class="r">→ cache + write ai-settings.json</span></li>
+        </ul>
+      </div>
+
+      <div class="detail" style="border-color:var(--violet);box-shadow:0 0 0 1px rgba(188,140,255,.22)">
+        <h4 style="color:var(--violet)">CallManager <span class="pill hub">the live-call engine · 295 LOC</span></h4>
+        <div class="sig">holds: activeCall · callBusiness · Process sttProcess · Map&lt;name,CallHistory&gt;</div>
+        <ul>
+          <li><span class="m">startCall(agent, customer, type)</span> <span class="r">→ new Call + launch STT subprocess</span></li>
+          <li><span class="m">endCall()</span> <span class="r">→ stop STT, save history + transcript.txt</span></li>
+          <li><span class="m" style="color:var(--violet)">handleChatMessage(Role, content)</span> <span class="r">★ records every user/AI line</span></li>
+          <li><span class="m">handleTranscript(text, translated, isFinal)</span> <span class="r">→ set final transcript</span></li>
+          <li><span class="m">isCallActive()</span> / <span class="m">getActiveCall()</span> / <span class="m">getActiveHistory()</span></li>
+          <li><span class="r">private:</span> launchSttProcess · stopSttProcess · pipeSttOutput · saveCallTranscript · loadHistory</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout uniq">
+      <span class="tag">★ The one method to remember</span>
+      <code>CallManager.handleChatMessage(role, content)</code> is where every recognized customer line and every
+      generated AI line lands in real time. It appends to the call's transcript and prints to the operator console.
+      If you want a live feed, a websocket, a UI, or analytics — <strong>hook here first</strong>. See <a href="#intercept">Reading Dialogs</a>.
+    </div>
+  </section>
+
+  <!-- ============== 5. MODELS ============== -->
+  <section id="models">
+    <p class="eyebrow">05 — Data Models</p>
+    <h2 class="sec-title">What each model holds</h2>
+    <p class="sec-sub">Plain POJOs serialized to/from JSON by Gson. These are the shapes of everything on disk and in flight.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><b>Call</b> is the richest model — it carries both the user transcript and a separate AI transcript, plus a message list.</li>
+        <li><b>ChatMessage</b> is the atom of conversation: a role (USER / AI / SYSTEM), content, and a timestamp.</li>
+        <li><b>Config</b> holds a nested <code>LanguageOption</code> map that powers spoken language-switching.</li>
+        <li><b>Organization</b> and the <code>Instructions</code> enum exist but aren't wired to any manager yet — scaffolding for later.</li>
+      </ul>
+    </details>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="detail" style="border-color:var(--violet)">
+        <h4 style="color:var(--violet)">Call</h4>
+        <div class="sig">the live + archived conversation · 141 LOC</div>
+        <div class="fieldlist">
+          <span>callId <em>UUID</em></span><span>agentId</span><span>customerId</span><span>startTime</span><span>endTime</span>
+          <span>transcript <em>user</em></span><span>aiTranscript <em>AI</em></span><span>translated</span><span>sentiment</span>
+          <span>callContext</span><span>callType</span><span>messages <em>List&lt;ChatMessage&gt;</em></span>
+        </div>
+      </div>
+      <div class="detail">
+        <h4>ChatMessage</h4>
+        <div class="sig">one conversational turn</div>
+        <div class="fieldlist">
+          <span>role <em>USER·AI·SYSTEM</em></span><span>content</span><span>timestamp</span>
+        </div>
+      </div>
+      <div class="detail">
+        <h4>CallHistory</h4>
+        <div class="sig">per-business archive</div>
+        <div class="fieldlist">
+          <span>totalCalls <em>int</em></span><span>lastCallDate</span><span>callList <em>List&lt;Call&gt;</em></span>
+        </div>
+      </div>
+      <div class="detail">
+        <h4>AISettings</h4>
+        <div class="sig">the AI persona per business</div>
+        <div class="fieldlist">
+          <span>model</span><span>roleInstructions</span><span>replyInstructions</span><span>organizationInfo</span>
+        </div>
+      </div>
+      <div class="detail">
+        <h4>Config</h4>
+        <div class="sig">global runtime settings + nested LanguageOption</div>
+        <div class="fieldlist">
+          <span>debugLevel</span><span>apiKey</span><span>aiModel</span><span>allowAiResponse</span><span>sttLanguage</span>
+          <span>pauseThreshold</span><span>phraseThreshold</span><span>nonSpeakingDuration</span><span>ambientNoiseAdjustment</span>
+          <span>supportedLanguages <em>Map</em></span>
+        </div>
+      </div>
+      <div class="detail">
+        <h4>Business</h4>
+        <div class="sig">a registered tenant</div>
+        <div class="fieldlist">
+          <span>businessId <em>UUID</em></span><span>businessName</span><span>businessDetails</span><span>registerDate</span>
+        </div>
+      </div>
+      <div class="detail">
+        <h4>BusinessDetails</h4>
+        <div class="sig">contact / profile fields</div>
+        <div class="fieldlist">
+          <span>businessName</span><span>businessAddress</span><span>telephoneNumber <em>List</em></span><span>emailAddress</span>
+          <span>website</span><span>businessDescription</span><span>businessCategory</span><span>businessOwner</span>
+          <span>ownerTelephoneNumbers <em>List</em></span><span>businessHours</span><span>socialLinks <em>List</em></span>
+        </div>
+      </div>
+      <div class="detail" style="opacity:.82">
+        <h4>Organization <span class="small">· unused</span></h4>
+        <div class="sig">defined but not referenced by any manager</div>
+        <div class="fieldlist">
+          <span>organizationId</span><span>organizationName</span><span>organizationType</span><span>organizationAddress</span>
+          <span>organizationPhone</span><span>organizationEmail</span><span>organizationWebsite</span><span>organizationOwner</span>
+          <span>preferredLanguages <em>List</em></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout opp">
+      <span class="tag">Opportunity</span>
+      <code>Call</code> already reserves <strong>sentiment</strong>, <strong>callContext</strong>, and <strong>translated</strong>
+      fields that nothing currently populates. They're natural hooks for post-call analysis or live translation as you expand the project.
+    </div>
+  </section>
+
+  <!-- ============== 6. REST API ============== -->
+  <section id="api">
+    <p class="eyebrow">06 — REST API</p>
+    <h2 class="sec-title">The 6 endpoints on <code>localhost:8080/api</code></h2>
+    <p class="sec-sub">The entire Java⇄Python contract. Python fetches with GET, reports with POST. Every controller delegates to exactly one manager method.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li>Python reads behavior via <code>GET /config</code> and <code>GET /ai-settings</code> at the start of each call.</li>
+        <li><code>POST /chat-message</code> is the live per-utterance channel — the busiest and most interesting route.</li>
+        <li><code>POST /transcript</code> fires <b>once</b> at call end with the full session text.</li>
+        <li>Base URL is hard-coded in Python's <code>config.py</code> as <code>http://localhost:8080/api</code>.</li>
+      </ul>
+    </details>
+
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Controller</th><th>Delegates to</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill get">GET</span></td><td><code>/api/config</code></td><td>ConfigController</td><td><code>ConfigManager.getConfig</code></td><td>Python pulls STT thresholds, model, languages at call start</td></tr>
+            <tr><td><span class="pill post">POST</span></td><td><code>/api/config</code></td><td>ConfigController</td><td><code>ConfigManager.updateConfig</code></td><td>Overwrite global config</td></tr>
+            <tr><td><span class="pill get">GET</span></td><td><code>/api/ai-settings</code></td><td>AISettingsController</td><td><code>AISettingsManager.getActiveSettings</code></td><td>Python pulls the active business's AI persona</td></tr>
+            <tr><td><span class="pill post">POST</span></td><td><code>/api/ai-settings</code></td><td>AISettingsController</td><td><code>AISettingsManager.updateActiveSettings</code></td><td>Update role / reply / org instructions</td></tr>
+            <tr style="background:rgba(188,140,255,.06)"><td><span class="pill hub">POST</span></td><td class="cell-violet"><code>/api/chat-message</code></td><td>ChatMessageController</td><td class="cell-violet"><code>CallManager.handleChatMessage</code></td><td><b>Live user &amp; AI lines, one POST per utterance</b></td></tr>
+            <tr><td><span class="pill post">POST</span></td><td><code>/api/transcript</code></td><td>TranscriptController</td><td><code>CallManager.handleTranscript</code></td><td>Final full-session transcript at call end</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">The full cross-runtime contract, color-coded by verb; the highlighted row is the live dialog channel.
+        <b>Four of six routes are plumbing — the conversation itself flows through just one: <code>POST /api/chat-message</code>.</b></p>
+    </div>
+
+    <div class="two-up" style="margin-top:16px">
+      <div class="detail">
+        <h4 style="font-size:.95rem">ChatMessageRequest <span class="small">· DTO</span></h4>
+        <div class="fieldlist"><span>role <em>"user"·"ai"·"system"</em></span><span>content</span></div>
+      </div>
+      <div class="detail">
+        <h4 style="font-size:.95rem">TranscriptRequest <span class="small">· DTO</span></h4>
+        <div class="fieldlist"><span>transcript</span><span>translatedTranscript</span><span>isFinal <em>bool</em></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 7. LIVE CALL FLOW (SIGNATURE) ============== -->
+  <section id="flow">
+    <p class="eyebrow">07 — Live Call Flow</p>
+    <h2 class="sec-title">The life of a call, end to end</h2>
+    <p class="sec-sub">From <code>start-call</code> to <code>end-call</code> — and the exact path a single spoken sentence takes to become an AI reply.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><code>start-call</code> creates a <code>Call</code> and spawns <code>python -u stt_sender.py</code> as a child process.</li>
+        <li>Python transcribes speech (Google), optionally switches language, then asks Gemini for a reply.</li>
+        <li>Both the user line and the AI line are POSTed back individually to <code>/api/chat-message</code>.</li>
+        <li><code>end-call</code> sends SIGTERM to Python, which flushes a final transcript; Java then writes the archive.</li>
+      </ul>
+    </details>
+
+    <!-- signature animated pipeline -->
+    <div class="card">
+      <h3 style="margin:0 0 2px;font-size:1.05rem">The dialog pipeline <span class="small" style="font-weight:400">· one spoken sentence, tracked</span></h3>
+      <p class="small" style="margin:0 0 6px">Blue pulse = a customer utterance travelling in; green pulse = the AI reply travelling back.</p>
+      <div class="pipeline">
+        <div class="flowline"></div>
+        <div class="packet"></div>
+        <div class="packet ai"></div>
+        <div class="rail">
+          <div class="stage"><div class="ic">🎙️</div><div class="nm">Customer</div><div class="sub">speaks into mic</div></div>
+          <div class="stage"><div class="ic">🌐</div><div class="nm">Google STT</div><div class="sub">recognize_google()</div></div>
+          <div class="stage"><div class="ic">🐍</div><div class="nm">handle_phrase</div><div class="sub">stt_sender.py:149</div></div>
+          <div class="stage hub"><div class="ic">☕</div><div class="nm">CallManager</div><div class="sub">handleChatMessage() ★</div></div>
+          <div class="stage ai-s"><div class="ic">✨</div><div class="nm">Gemini</div><div class="sub">get_ai_response()</div></div>
+          <div class="stage"><div class="ic">🔊</div><div class="nm">AI reply</div><div class="sub">back to console + log</div></div>
+        </div>
+      </div>
+      <p class="caption">A recognized sentence flows left→right into Java's hub, which triggers the Gemini reply that flows back.
+        <b>Every arrow in this rail crosses through <code>handleChatMessage()</code> — the one place both directions are visible.</b></p>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 10px;font-size:1.05rem">Sequence — start to archive</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid" id="mm-seq">
+sequenceDiagram
+  autonumber
+  participant Op as Operator CLI
+  participant CM as CallManager (Java)
+  participant PY as stt_sender.py
+  participant G as Google STT
+  participant AI as Gemini
+  Op->>CM: start-call
+  CM->>PY: spawn subprocess (ProcessBuilder)
+  PY->>CM: GET /api/config + /api/ai-settings
+  Note over PY: mic listens in background
+  loop each spoken phrase
+    PY->>G: recognize_google(audio)
+    G-->>PY: user text
+    PY->>CM: POST /api/chat-message (role=user)
+    PY->>AI: generate_content(prompt)
+    AI-->>PY: AI reply
+    PY->>CM: POST /api/chat-message (role=ai)
+  end
+  Op->>CM: end-call
+  CM->>PY: destroy() → SIGTERM
+  PY->>CM: POST /api/transcript (isFinal=true)
+  CM->>CM: save call-history.json + transcript.txt
+        </div>
+      </div>
+      <p class="caption">The full round trip, including config fetch, the per-phrase loop, and teardown.
+        <b>Java only learns the final flat transcript at the end — the granular turn-by-turn record is built live via chat-message.</b></p>
+    </div>
+
+    <div class="callout info">
+      <span class="tag">Detail · language switching</span>
+      Inside the loop, Python checks each utterance against <code>supportedLanguages</code> aliases (e.g. saying "bangla" or
+      "বাংলা"). On a match it restarts the recognizer in the new locale and emits <em>please-wait</em> / <em>ready</em>
+      system messages — all of which also flow through <code>/api/chat-message</code>.
+    </div>
+  </section>
+
+  <!-- ============== 8. INTERCEPT ============== -->
+  <section id="intercept">
+    <p class="eyebrow">08 — Reading Dialogs · what you asked for</p>
+    <h2 class="sec-title">Where to intercept the live conversation</h2>
+    <p class="sec-sub">Seven concrete places you can tap the User↔AI dialog while a call is happening, ranked from best to most specialized.</p>
+
+    <details class="takeaways" open>
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><b>Best single hook:</b> <code>CallManager.handleChatMessage()</code> — every line, both roles, in real time, in-process.</li>
+        <li><b>Best HTTP hook:</b> <code>POST /api/chat-message</code> (or a Spring filter on it) if you want to tap from outside Java.</li>
+        <li><b>At the source:</b> Python <code>handle_phrase()</code> already holds the user text and the AI answer before sending.</li>
+        <li><b>Read-only tap:</b> the live <code>Call.getMessages()</code> list, or <code>Console.getSessionLogs()</code>, can be polled.</li>
+        <li><code>/api/transcript</code> is <b>not</b> live — it only carries the full text once, at call end.</li>
+      </ul>
+    </details>
+
+    <div class="callout uniq">
+      <span class="tag">★ Primary recommendation</span>
+      Add your listener in <strong><code>CallManager.handleChatMessage(role, content)</code></strong>
+      (<code>java-backend/…/managers/CallManager.java:128</code>). Every USER and AI utterance passes through it before
+      it's stored or printed. Broadcast from there (WebSocket / SSE / event bus) and you get the whole live conversation
+      with zero changes to Python.
+    </div>
+
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Interception point</th><th>Location</th><th>What you get</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr style="background:rgba(188,140,255,.06)">
+              <td class="cell-violet">1</td>
+              <td class="cell-violet"><code>CallManager.handleChatMessage()</code></td>
+              <td><code>CallManager.java:128</code></td>
+              <td>Every user + AI + system line, with role &amp; timestamp, live, in-process</td>
+              <td class="cell-violet">The go-to hook — live feed, UI, analytics</td>
+            </tr>
+            <tr>
+              <td class="cell-blue">2</td>
+              <td><code>ChatMessageController.receiveChatMessage()</code></td>
+              <td><code>ChatMessageController.java:22</code></td>
+              <td>The raw HTTP body (<code>role</code>, <code>content</code>) for every utterance</td>
+              <td>Tap from outside Java, or a Spring interceptor/filter</td>
+            </tr>
+            <tr>
+              <td class="cell-emerald">3</td>
+              <td>Python <code>handle_phrase()</code></td>
+              <td><code>stt_sender.py:149</code></td>
+              <td>User <code>text</code> and AI <code>answer</code> as local variables, pre-send</td>
+              <td>Intercept at the origin; add transforms / redaction</td>
+            </tr>
+            <tr>
+              <td class="cell-emerald">4</td>
+              <td>Python <code>send_chat_message()</code></td>
+              <td><code>stt_sender.py:67</code></td>
+              <td>The single Python→Java pipe for every message</td>
+              <td>Mirror / log every line as it leaves Python</td>
+            </tr>
+            <tr>
+              <td class="cell-blue">5</td>
+              <td><code>Call.getMessages()</code> (live object)</td>
+              <td><code>Call.java:131</code></td>
+              <td>The growing <code>List&lt;ChatMessage&gt;</code> on the active call</td>
+              <td>Poll the conversation-so-far while the call runs</td>
+            </tr>
+            <tr>
+              <td class="cell-blue">6</td>
+              <td><code>Console.getSessionLogs()</code> / <code>chat()</code></td>
+              <td><code>Console.java:39</code></td>
+              <td>Every printed dialog line accrued in <code>sessionLogs</code></td>
+              <td>Read-only tap of what the operator sees</td>
+            </tr>
+            <tr>
+              <td class="cell-amber">7</td>
+              <td><code>TranscriptController</code> → <code>handleTranscript()</code></td>
+              <td><code>TranscriptController.java:18</code></td>
+              <td>Full flat session transcript — <b>once, at call end</b></td>
+              <td>Post-call archival only (not live)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">Interception points colored by nature: violet = primary hub, emerald = source-side, blue = read-only, amber = end-only.
+        <b>Points 1–4 give you the conversation live; 5–6 let you observe it; 7 is the after-the-fact summary.</b></p>
+    </div>
+
+    <div class="callout risk">
+      <span class="tag">Caution · common mistake</span>
+      Don't rely on <code>POST /api/transcript</code> for live monitoring. <code>handleTranscript()</code> only acts when
+      <code>isFinal == true</code>, which Python sends once, during teardown. For anything real-time, use points 1–4.
+    </div>
+
+    <div class="callout opp">
+      <span class="tag">Opportunity · minimal live-feed recipe</span>
+      In <code>handleChatMessage()</code>, after <code>activeCall.addMessage(...)</code>, publish the same
+      <code>ChatMessage</code> to a Spring <code>@EventListener</code> or a WebSocket topic. One added line gives every
+      external consumer the live transcript — the model and endpoints already carry role + timestamp.
+    </div>
+  </section>
+
+  <!-- ============== 9. CONFIG ============== -->
+  <section id="config">
+    <p class="eyebrow">09 — Configuration Reference</p>
+    <h2 class="sec-title">Every knob, and where it's read</h2>
+    <p class="sec-sub">Global behavior lives in <code>Config</code> (mirrored to Python); the AI persona lives per-business in <code>AISettings</code>.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li>STT sensitivity is four tunable doubles: pause / phrase / non-speaking / ambient-noise thresholds.</li>
+        <li><code>allowAiResponse</code> is a kill-switch — set false to transcribe without generating replies.</li>
+        <li>Adding a spoken language = one entry in <code>supportedLanguages</code> with aliases + prompts.</li>
+        <li>The AI persona is assembled by Python's <code>build_prompt()</code> from role + reply + org instructions.</li>
+      </ul>
+    </details>
+
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin:0 0 10px;font-size:1rem">Config <span class="small">· data/config.json (defaults shown)</span></h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Field</th><th>Default</th><th>Role</th></tr></thead>
+            <tbody>
+              <tr><td><code>debugLevel</code></td><td class="cell-blue">2</td><td>0 chat · 1 +warn/err · 2 all</td></tr>
+              <tr><td><code>apiKey</code></td><td class="cell-amber">&lt;secret&gt;</td><td>Gemini key</td></tr>
+              <tr><td><code>aiModel</code></td><td>gemini-2.5-flash</td><td>LLM model id</td></tr>
+              <tr><td><code>allowAiResponse</code></td><td class="cell-emerald">true</td><td>reply on/off</td></tr>
+              <tr><td><code>sttLanguage</code></td><td>en-US</td><td>start locale</td></tr>
+              <tr><td><code>pauseThreshold</code></td><td class="cell-blue">1.5</td><td>end-of-phrase silence (s)</td></tr>
+              <tr><td><code>phraseThreshold</code></td><td class="cell-blue">0.3</td><td>min phrase length (s)</td></tr>
+              <tr><td><code>nonSpeakingDuration</code></td><td class="cell-blue">0.5</td><td>trailing silence (s)</td></tr>
+              <tr><td><code>ambientNoiseAdjustment</code></td><td class="cell-blue">3.0</td><td>mic calibration (s)</td></tr>
+              <tr><td><code>supportedLanguages</code></td><td>bn-BD, en-US</td><td>Map&lt;code,LanguageOption&gt;</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="caption">The global control surface, served to Python at each call start.
+          <b>Four STT doubles decide how eagerly the mic cuts a phrase — tune these first for recognition quality.</b></p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 10px;font-size:1rem">AISettings <span class="small">· per-business ai-settings.json</span></h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>model</code></td><td>Gemini model for this business</td></tr>
+              <tr><td><code>roleInstructions</code></td><td>who the AI is (the persona)</td></tr>
+              <tr><td><code>replyInstructions</code></td><td>how it should answer (tone/format)</td></tr>
+              <tr><td><code>organizationInfo</code></td><td>facts it may cite to customers</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <hr class="soft">
+        <h4 style="margin:0 0 6px;font-size:.9rem">LanguageOption <span class="small">· nested in Config</span></h4>
+        <div class="fieldlist">
+          <span>name</span><span>aliases <em>List — spoken triggers</em></span><span>pleaseWait</span><span>ready</span>
+        </div>
+        <p class="caption">The AI's personality and its language menu.
+          <b>Python's <code>build_prompt()</code> stacks role → reply → org info → the customer's line into one Gemini prompt.</b></p>
+      </div>
+    </div>
+
+    <div class="callout risk">
+      <span class="tag">Security risk</span>
+      The Gemini <strong>API key is stored in plaintext</strong> in <code>data/config.json</code> and served over the
+      unauthenticated <code>GET /api/config</code> endpoint. Before this leaves your machine, move the key to an
+      environment variable and stop returning it in the config response.
+    </div>
+  </section>
+
+  <!-- ============== 10. STORAGE ============== -->
+  <section id="storage">
+    <p class="eyebrow">10 — Data &amp; Storage</p>
+    <h2 class="sec-title">How state is persisted</h2>
+    <p class="sec-sub">No database. Gson reads and writes JSON files; every write goes through <code>FileUtils</code>, every path through <code>PathUtils</code>.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li>Each business is a self-contained folder holding its settings, call history, and transcripts.</li>
+        <li>Ending a call writes <b>twice</b>: the structured <code>call-history.json</code> and a human-readable <code>&lt;callId&gt;.txt</code>.</li>
+        <li><code>FileUtils.updateJsonFile()</code> deep-merges new default keys into existing files without losing data.</li>
+        <li>Errors are captured to <code>logs/errors/error_&lt;at&gt;_&lt;id&gt;.log</code> with full stack traces.</li>
+      </ul>
+    </details>
+
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin:0 0 10px;font-size:1rem">On-disk artifacts</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>File</th><th>Model</th><th>Written by</th></tr></thead>
+            <tbody>
+              <tr><td><code>data/config.json</code></td><td>Config</td><td>ConfigManager</td></tr>
+              <tr><td><code>…/&lt;biz&gt;/business.json</code></td><td>Business</td><td>BusinessManager</td></tr>
+              <tr><td><code>…/&lt;biz&gt;/ai-settings.json</code></td><td>AISettings</td><td>AISettingsManager</td></tr>
+              <tr><td><code>…/&lt;biz&gt;/call-history.json</code></td><td>CallHistory</td><td>CallManager (endCall)</td></tr>
+              <tr><td><code>…/transcripts/&lt;callId&gt;.txt</code></td><td>plain text</td><td>CallManager (saveCallTranscript)</td></tr>
+              <tr><td><code>logs/errors/error_*.log</code></td><td>stack trace</td><td>FileUtils.logError</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="caption">Every persistent artifact and the component that owns it.
+          <b>A finished call leaves two records — machine-readable history plus a readable transcript.</b></p>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 10px;font-size:1rem">Support utilities</h3>
+        <div class="detail" style="margin-bottom:10px">
+          <h4 style="font-size:.95rem">FileUtils</h4>
+          <div class="sig">Gson JSON I/O · deep merge · error logs</div>
+          <div class="fieldlist"><span>loadJsonFile</span><span>saveJsonFile</span><span>updateJsonFile</span><span>syncJsonObjects</span><span>createDirectory</span><span>logError</span></div>
+        </div>
+        <div class="detail" style="margin-bottom:10px">
+          <h4 style="font-size:.95rem">PathUtils</h4>
+          <div class="sig">sanitize + resolve per-business paths</div>
+          <div class="fieldlist"><span>businessDir</span><span>businessFile</span><span>aiSettingsFile</span><span>callHistoryFile</span><span>transcriptsDir</span></div>
+        </div>
+        <div class="detail">
+          <h4 style="font-size:.95rem">TimeUtils · Console · Lang</h4>
+          <div class="sig">timestamps · leveled logging · all UI strings</div>
+          <div class="fieldlist"><span>getTimeNow</span><span>formatDuration</span><span>console.chat/info/warn/error</span><span>Lang.*</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 11. EXTEND ============== -->
+  <section id="extend">
+    <p class="eyebrow">11 — Extending It</p>
+    <h2 class="sec-title">Where to build next</h2>
+    <p class="sec-sub">Grounded starting points based on scaffolding that already exists in the code.</p>
+
+    <details class="takeaways">
+      <summary>Key Takeaways</summary>
+      <ul>
+        <li><b>Live UI / feed:</b> broadcast from <code>handleChatMessage()</code> — the model already carries role + timestamp.</li>
+        <li><b>Analytics:</b> populate the dormant <code>sentiment</code> / <code>callContext</code> fields on <code>Call</code>.</li>
+        <li><b>Customer context:</b> the <code>Instructions</code> enum + <code>Organization</code> model are pre-built but unwired.</li>
+        <li><b>Harden config:</b> pull the API key out of the served JSON before any deployment.</li>
+      </ul>
+    </details>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr))">
+      <div class="callout opp" style="margin:0">
+        <span class="tag">Opportunity · real-time UI</span>
+        Tap point #1, push each <code>ChatMessage</code> to a WebSocket, and render a live agent-assist screen. No Python changes needed.
+      </div>
+      <div class="callout uniq" style="margin:0">
+        <span class="tag">Unique · unwired scaffolding</span>
+        The <code>Instructions</code> enum (NEW_CUSTOMER, EXISTING_CUSTOMER, WRONG_NUMBER…) and the <code>Organization</code> model exist but aren't referenced — ready to drive smarter prompts.
+      </div>
+      <div class="callout info" style="margin:0">
+        <span class="tag">Detail · reserved fields</span>
+        <code>Call.sentiment</code>, <code>Call.callContext</code>, and <code>Call.translated</code> are serialized but never set — safe slots for new pipelines.
+      </div>
+      <div class="callout risk" style="margin:0">
+        <span class="tag">Risk · before shipping</span>
+        Externalize the Gemini key, add auth to the REST API, and consider persisting per-turn messages incrementally rather than only at <code>endCall()</code>.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="mono">AI Customer Service Agent · internal architecture report · generated 2026-07-20</div>
+    <div style="margin-top:6px">Source of truth: <code>java-backend/src/main/java/com/ulab/agent</code> &amp; <code>python-scripts/</code>. All figures derived directly from the codebase.</div>
+  </footer>
+</div>
+
+<button id="toTop" aria-label="Back to top" title="Back to top">↑</button>
+
+<script>
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Mermaid ---------- */
+  try{
+    if(window.mermaid){
+      mermaid.initialize({
+        startOnLoad:false,
+        securityLevel:'loose',
+        theme:'base',
+        themeVariables:{
+          background:'#0b0f14', primaryColor:'#1c2128', primaryTextColor:'#e6edf3',
+          primaryBorderColor:'#30363d', lineColor:'#8b949e', secondaryColor:'#161b22',
+          tertiaryColor:'#0d1117', fontFamily:"'JetBrains Mono', monospace", fontSize:'13px',
+          actorBkg:'#1c2128', actorBorder:'#58a6ff', actorTextColor:'#e6edf3',
+          signalColor:'#8b949e', signalTextColor:'#c2ccd6', labelBoxBkgColor:'#161b22',
+          labelBoxBorderColor:'#30363d', noteBkgColor:'#12261a', noteBorderColor:'#3fb950', noteTextColor:'#e6edf3',
+          loopTextColor:'#bc8cff'
+        },
+        flowchart:{curve:'basis', useMaxWidth:true},
+        sequence:{useMaxWidth:true, mirrorActors:false}
+      });
+      mermaid.run({querySelector:'.mermaid'}).catch(function(e){console.warn('mermaid render skipped',e);});
+    }
+  }catch(e){console.warn('mermaid init skipped',e);}
+
+  /* ---------- Chart.js ---------- */
+  function charts(){
+    if(!window.Chart) return;
+    Chart.defaults.color = '#8b949e';
+    Chart.defaults.font.family = "'JetBrains Mono', monospace";
+    Chart.defaults.font.size = 11;
+    var anim = reduceMotion ? false : {duration:900, easing:'easeOutQuart'};
+
+    // donut: files per layer
+    var d = document.getElementById('donutFiles');
+    if(d){
+      new Chart(d, {
+        type:'doughnut',
+        data:{
+          labels:['models (8)','utils (6)','stt (5)','managers (4)','ai (2)','root (1)'],
+          datasets:[{
+            data:[8,6,5,4,2,1],
+            backgroundColor:['#58a6ff','#8b949e','#3fb950','#bc8cff','#f0a500','#6e7681'],
+            borderColor:'#0b0f14', borderWidth:2, hoverOffset:6
+          }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false, cutout:'62%', animation:anim,
+          plugins:{
+            legend:{position:'right', labels:{boxWidth:11, padding:10, font:{size:11}}},
+            tooltip:{backgroundColor:'#1c2128', borderColor:'#30363d', borderWidth:1,
+              titleColor:'#e6edf3', bodyColor:'#c2ccd6', padding:10,
+              callbacks:{label:function(c){return ' '+c.parsed+' files';}}}
+          }
+        }
+      });
+    }
+
+    // horizontal bar: LOC per layer
+    var b = document.getElementById('barLoc');
+    if(b){
+      new Chart(b, {
+        type:'bar',
+        data:{
+          labels:['utils','models','managers','stt','ai','root'],
+          datasets:[{
+            label:'lines of code',
+            data:[693,553,502,119,54,29],
+            backgroundColor:'#58a6ff', borderRadius:5, barThickness:20
+          }]
+        },
+        options:{
+          indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:anim,
+          scales:{
+            x:{grid:{color:'rgba(139,148,158,.14)'}, ticks:{color:'#8b949e'}, border:{display:false}},
+            y:{grid:{display:false}, ticks:{color:'#c2ccd6', font:{size:12}}, border:{display:false}}
+          },
+          plugins:{
+            legend:{display:false},
+            tooltip:{backgroundColor:'#1c2128', borderColor:'#30363d', borderWidth:1,
+              titleColor:'#e6edf3', bodyColor:'#c2ccd6', padding:10,
+              callbacks:{label:function(c){return ' '+c.parsed.x+' LOC';}}}
+          }
+        }
+      });
+    }
+  }
+  if(window.Chart){ charts(); } else { window.addEventListener('load', charts); }
+
+  /* ---------- scroll progress + back-to-top ---------- */
+  var rail = document.getElementById('progress-rail');
+  var toTop = document.getElementById('toTop');
+  var hero = document.querySelector('.hero');
+  function onScroll(){
+    var st = window.scrollY || document.documentElement.scrollTop;
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    rail.style.width = (h>0 ? (st/h*100) : 0) + '%';
+    var threshold = hero ? hero.offsetHeight : 400;
+    if(st > threshold) toTop.classList.add('show'); else toTop.classList.remove('show');
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+  toTop.addEventListener('click', function(){
+    window.scrollTo({top:0, behavior: reduceMotion ? 'auto' : 'smooth'});
+  });
+
+  /* ---------- scroll-spy ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.top a.link'));
+  var map = {};
+  links.forEach(function(l){ var id=l.getAttribute('href').slice(1); map[id]=l; });
+  var sections = Object.keys(map).map(function(id){return document.getElementById(id);}).filter(Boolean);
+  if('IntersectionObserver' in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('active');});
+          var active = map[en.target.id];
+          if(active){
+            active.classList.add('active');
+            active.scrollIntoView({block:'nearest', inline:'center'});
+          }
+        }
+      });
+    }, {rootMargin:'-45% 0px -50% 0px', threshold:0});
+    sections.forEach(function(s){obs.observe(s);});
+  }
+})();
+</script>
+</body>
+</html>
