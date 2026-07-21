@@ -1,14 +1,17 @@
 package com.ulab.agent.utils;
 
 import com.ulab.agent.Main;
+import com.ulab.agent.ai.CallMode;
 import com.ulab.agent.managers.AISettingsManager;
 import com.ulab.agent.managers.BusinessManager;
 import com.ulab.agent.managers.CallManager;
 import com.ulab.agent.managers.ConfigManager;
+import com.ulab.agent.managers.IntelligenceManager;
 import com.ulab.agent.models.AISettings;
 import com.ulab.agent.models.Business;
 import com.ulab.agent.models.BusinessDetails;
 import com.ulab.agent.models.Call;
+import com.ulab.agent.models.Client;
 import com.ulab.agent.models.Config;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -23,6 +26,7 @@ public class ConsoleTerminal {
     private final CallManager calls;
     private final AISettingsManager aiSettings;
     private final ConfigManager configs;
+    private final IntelligenceManager intelligence;
 
     public ConsoleTerminal(ConfigurableApplicationContext ctx) {
         this.ctx = ctx;
@@ -30,6 +34,7 @@ public class ConsoleTerminal {
         this.calls = ctx.getBean(CallManager.class);
         this.aiSettings = ctx.getBean(AISettingsManager.class);
         this.configs = ctx.getBean(ConfigManager.class);
+        this.intelligence = ctx.getBean(IntelligenceManager.class);
     }
 
     public void run() {
@@ -50,23 +55,29 @@ public class ConsoleTerminal {
 
             if (cmd.equals("help")) {
                 printHelp();
-            } else if (cmd.equals("status")) {
+            } else if (cmd.equals("status") || cmd.equals("sts")) {
                 showStatus();
-            } else if (cmd.equals("businesses")) {
+            } else if (cmd.equals("businesses") || cmd.equals("biz")) {
                 listBusinesses();
-            } else if (cmd.equals("add-business")) {
+            } else if (cmd.equals("add-business") || cmd.equals("+biz")) {
                 addBusiness(arg);
             } else if (cmd.equals("use")) {
                 useBusiness(arg);
-            } else if (cmd.equals("start-call")) {
-                startCall();
-            } else if (cmd.equals("end-call")) {
+            } else if (cmd.equals("start-call") || cmd.equals("+call")) {
+                startCall(arg);
+            } else if (cmd.equals("end-call") || cmd.equals("-call")) {
                 endCall();
+            } else if (cmd.equals("clients")) {
+                listClients();
+            } else if (cmd.equals("intel")) {
+                showIntelligence();
+            } else if (cmd.equals("set-mode")) {
+                setMode(arg);
             } else if (cmd.equals("ai")) {
                 showAiSettings();
-            } else if (cmd.equals("config")) {
+            } else if (cmd.equals("config") || cmd.equals("cfg")) {
                 showConfig();
-            } else if (cmd.equals("refresh")) {
+            } else if (cmd.equals("refresh") || cmd.equals("ref")) {
                 refresh();
             } else if (cmd.equals("exit") || cmd.equals("quit")) {
                 shutdown();
@@ -86,6 +97,9 @@ public class ConsoleTerminal {
         System.out.println(Lang.HELP_USE_BUSINESS);
         System.out.println(Lang.HELP_START_CALL);
         System.out.println(Lang.HELP_END_CALL);
+        System.out.println(Lang.HELP_CLIENTS);
+        System.out.println(Lang.HELP_INTEL);
+        System.out.println(Lang.HELP_SET_MODE);
         System.out.println(Lang.HELP_AI);
         System.out.println(Lang.HELP_CONFIG);
         System.out.println(Lang.HELP_REFRESH);
@@ -102,6 +116,9 @@ public class ConsoleTerminal {
         }
         Call c = calls.getActiveCall();
         System.out.println("Active call: " + c.getCallId());
+        System.out.println("  mode       = " + (calls.getActiveMode() == null ? "?" : calls.getActiveMode().getDisplayName()));
+        System.out.println("  caller     = " + (calls.getActiveClient() == null ? "unknown (new customer)"
+                : calls.getActiveClient().getName() + " (" + calls.getActiveClient().getClientId() + ")"));
         System.out.println("  transcript = " + (c.getTranscript() == null ? "" : c.getTranscript()));
     }
 
@@ -140,18 +157,80 @@ public class ConsoleTerminal {
         // Load per-business data lazily so 'ai' / 'status' see the fresh state.
         aiSettings.reload();
         calls.reload();
+        intelligence.reload();
         System.out.println(String.format(Lang.BUSINESS_ACTIVATED, arg));
     }
 
-    private void startCall() {
+    /**
+     * start-call            -> caller is treated as a NEW customer
+     * start-call <clientId> -> caller is that client (EXISTING customer mode)
+     */
+    private void startCall(String clientId) {
         if (businesses.getActiveBusiness() == null) {
             System.out.println(Lang.NO_ACTIVE_BUSINESS);
             return;
         }
-        Call c = calls.startCall(null, "unknown", "inbound");
+
+        CallMode mode = CallMode.NEW_CUSTOMER;
+        Client client = null;
+        if (!clientId.isEmpty()) {
+            client = intelligence.findClientOfActiveBusiness(clientId);
+            if (client == null) {
+                System.out.println(String.format(Lang.CLIENT_NOT_FOUND, clientId));
+                return;
+            }
+            mode = CallMode.EXISTING_CUSTOMER;
+            System.out.println(String.format(Lang.CALLING_AS_CLIENT, client.getName(), client.getClientId()));
+        }
+
+        Call c = calls.startCall(null, "inbound", mode, client);
         if (c != null) {
             System.out.println(String.format(Lang.CALL_ACTIVE_HINT, c.getCallId()));
             System.out.println(Lang.CALL_END_HINT);
+        }
+    }
+
+    /** Lists the clients of the active business (id, name, account type). */
+    private void listClients() {
+        Business active = businesses.getActiveBusiness();
+        if (active == null) {
+            System.out.println(Lang.NO_ACTIVE_BUSINESS);
+            return;
+        }
+        var clientList = intelligence.getClients(active.getBusinessName()).getClients();
+        if (clientList.isEmpty()) {
+            System.out.println(String.format(Lang.NO_CLIENTS,
+                    PathUtils.clientsFile(active.getBusinessName())));
+            return;
+        }
+        System.out.println(String.format(Lang.CLIENTS_HEADER, active.getBusinessName()));
+        for (Client c : clientList) {
+            System.out.println("  " + c.getClientId() + "  " + c.getName()
+                    + (c.getAccountType() == null ? "" : "  (" + c.getAccountType() + ")"));
+        }
+    }
+
+    /** Prints the exact business-info text the AI receives, for easy checking. */
+    private void showIntelligence() {
+        Business active = businesses.getActiveBusiness();
+        if (active == null) {
+            System.out.println(Lang.NO_ACTIVE_BUSINESS);
+            return;
+        }
+        System.out.println(intelligence.buildBusinessInfoText(active.getBusinessName()));
+    }
+
+    /** Forces the call mode by hand (mostly useful for testing the scenarios). */
+    private void setMode(String arg) {
+        CallMode mode = CallMode.fromString(arg);
+        if (arg.isEmpty() || mode == null) {
+            System.out.println(Lang.USAGE_SET_MODE);
+            return;
+        }
+        if (calls.changeMode(mode, "operator command")) {
+            System.out.println(String.format(Lang.MODE_SET, mode.getDisplayName()));
+        } else {
+            System.out.println(Lang.MODE_SET_FAILED);
         }
     }
 
@@ -195,6 +274,7 @@ public class ConsoleTerminal {
         businesses.reload();
         aiSettings.reload();
         calls.reload();
+        intelligence.reload();
         System.out.println(Lang.REFRESH_DONE);
     }
 

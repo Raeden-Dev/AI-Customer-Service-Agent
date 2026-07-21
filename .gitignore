@@ -23,3 +23,4 @@ Thumbs.db
 logs/
 *.class
 *.lst
+java-backend/data/config.json

@@ -1,4 +1,4 @@
-package com.ulab.agent.stt;
+package com.ulab.agent.api;
 
 import com.ulab.agent.managers.ConfigManager;
 import com.ulab.agent.models.Config;
@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * GET/POST /api/config — the global settings.
+ * Python calls GET at the start of every call to learn the STT + TTS settings.
+ */
 @RestController
 @RequestMapping("/api")
 public class ConfigController {

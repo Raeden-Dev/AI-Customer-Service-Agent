@@ -4,10 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * One phone call: who called, when, the full message list, and the transcripts.
+ * Lives in memory while the call is active; saved into call-history.json when it ends.
+ */
 public class Call {
     private String callId = UUID.randomUUID().toString();
     private String agentId;
-    private String customerId;
+    private String customerId;   // clientId for existing customers, "unknown" for new callers
+    private String callMode;     // which CallMode the call is in (see ai/CallMode.java)
     private String startTime;
     private String endTime;
     private String transcript;
@@ -40,6 +45,14 @@ public class Call {
 
     public void setCustomerId(String customerId) {
         this.customerId = customerId;
+    }
+
+    public String getCallMode() {
+        return callMode;
+    }
+
+    public void setCallMode(String callMode) {
+        this.callMode = callMode;
     }
 
     public String getStartTime() {

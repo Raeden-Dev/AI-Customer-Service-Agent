@@ -4,11 +4,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-// Global runtime config, mirrored to Python at startup via /api/config.
+/**
+ * Global runtime config, stored in data/config.json.
+ * Python fetches this over GET /api/config at the start of every call,
+ * so editing the file + starting a new call is enough to apply changes.
+ */
 public class Config {
 
     // --- General ---
     private int debugLevel = 2;
+    private boolean pythonListenerDebug = true;
     private String apiKey = "";
     private String aiModel = "gemini-2.5-flash";
     private boolean allowAiResponse = true;
@@ -19,6 +24,12 @@ public class Config {
     private double phraseThreshold = 0.3;
     private double nonSpeakingDuration = 0.5;
     private double ambientNoiseAdjustment = 3.0;
+
+    // --- TTS / text-to-speech (the AI's voice, played by Python via pyttsx3) ---
+    private boolean ttsEnabled = true;   // false = AI replies are text-only
+    private int ttsRate = 170;           // speaking speed in words per minute (~170 is natural)
+    private double ttsVolume = 1.0;      // 0.0 (silent) to 1.0 (full volume)
+    private String ttsVoice = "";        // part of a voice name, e.g. "Zira"; empty = system default
 
     // --- Language switching (spoken by user, matched by Python) ---
     private Map<String, LanguageOption> supportedLanguages = new LinkedHashMap<>();
@@ -67,8 +78,28 @@ public class Config {
     public double getAmbientNoiseAdjustment() { return ambientNoiseAdjustment; }
     public void setAmbientNoiseAdjustment(double ambientNoiseAdjustment) { this.ambientNoiseAdjustment = ambientNoiseAdjustment; }
 
+    public boolean isTtsEnabled() { return ttsEnabled; }
+    public void setTtsEnabled(boolean ttsEnabled) { this.ttsEnabled = ttsEnabled; }
+
+    public int getTtsRate() { return ttsRate; }
+    public void setTtsRate(int ttsRate) { this.ttsRate = ttsRate; }
+
+    public double getTtsVolume() { return ttsVolume; }
+    public void setTtsVolume(double ttsVolume) { this.ttsVolume = ttsVolume; }
+
+    public String getTtsVoice() { return ttsVoice; }
+    public void setTtsVoice(String ttsVoice) { this.ttsVoice = ttsVoice; }
+
     public Map<String, LanguageOption> getSupportedLanguages() { return supportedLanguages; }
     public void setSupportedLanguages(Map<String, LanguageOption> supportedLanguages) { this.supportedLanguages = supportedLanguages; }
+
+    public boolean isPythonListenerDebug() {
+        return pythonListenerDebug;
+    }
+
+    public void setPythonListenerDebug(boolean pythonListenerDebug) {
+        this.pythonListenerDebug = pythonListenerDebug;
+    }
 
     public static class LanguageOption {
         private String name;

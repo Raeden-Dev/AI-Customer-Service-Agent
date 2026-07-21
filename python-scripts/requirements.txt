@@ -3,3 +3,4 @@ SpeechRecognition
 google-genai
 deep-translator
 PyAudio
+pyttsx3

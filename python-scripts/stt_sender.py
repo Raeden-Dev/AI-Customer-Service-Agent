@@ -9,10 +9,19 @@ import speech_recognition as sr
 
 print("[stt_sender] starting up...", flush=True)
 
-from ai_agent import get_ai_response, refresh_ai_settings
+import tts_speaker
+from ai_agent import (
+    call_context,
+    get_ai_response,
+    refresh_ai_settings,
+    refresh_call_context,
+    remember,
+    reset_conversation,
+)
 from config import (
     AI_RESPONSE,
     AUDIO_PARSE_FAILURE,
+    CALL_FORWARDED_LOCAL,
     CHAT_MESSAGE_URL,
     GOOGLE_SERVICE_FAILURE,
     JAVA_URL,
@@ -35,6 +44,10 @@ _stop_listening = None
 _current_language = runtime.language
 _switch_in_progress = False
 _switch_lock = threading.Lock()
+
+# Set to True when the call was handed to a human agent (COMPLEX_REQUEST mode).
+# From then on we keep transcribing the caller, but the AI stays quiet.
+_forwarded_to_human = False
 
 
 def send(transcript, is_final=False):
@@ -112,6 +125,7 @@ def _do_switch(new_lang):
         ready = meta.get("ready") or f"Ready. You can now speak in {new_lang}."
 
         send_chat_message("ai", please_wait)
+        tts_speaker.speak(please_wait)
         send_chat_message("system", f"Switching STT language from {_current_language} to {new_lang}...")
 
         old_stop = _stop_listening
@@ -126,6 +140,7 @@ def _do_switch(new_lang):
         _start_listener()
 
         send_chat_message("ai", ready)
+        tts_speaker.speak(ready)
         print(f"[stt_sender] language switched to {new_lang}", flush=True)
     except Exception:
         print("[stt_sender] language switch failed:", flush=True)
@@ -147,6 +162,12 @@ def switch_language(new_lang):
 
 
 def handle_phrase(recognizer, audio):
+    """Runs for every phrase the microphone picks up.
+
+    Note: this runs on the listener thread, and tts_speaker.speak() blocks it
+    until the AI is done talking — so the mic ignores the AI's own voice.
+    """
+    global _forwarded_to_human
     if _switch_in_progress:
         return
     try:
@@ -160,10 +181,20 @@ def handle_phrase(recognizer, audio):
             switch_language(target_lang)
             return
 
+        # After a (simulated) hand-over to a human agent the AI stays quiet;
+        # we only keep transcribing what the caller says.
+        if _forwarded_to_human:
+            return
+
         if runtime.allow_ai_response:
-            answer = get_ai_response(text)
+            answer, new_mode = get_ai_response(text)
             print(AI_RESPONSE + answer, flush=True)
             send_chat_message("ai", answer)
+            tts_speaker.speak(answer)
+
+            if new_mode == "COMPLEX_REQUEST":
+                _forwarded_to_human = True
+                print(CALL_FORWARDED_LOCAL, flush=True)
     except sr.UnknownValueError:
         print(AUDIO_PARSE_FAILURE, flush=True)
     except sr.RequestError as e:
@@ -190,13 +221,27 @@ def _on_signal(signum, _frame):
     sys.exit(0)
 
 
+def _speak_greeting():
+    """Open the call: the AI greets the caller before anyone speaks."""
+    greeting = call_context.get("greeting")
+    if not greeting or not runtime.allow_ai_response:
+        return
+    print(AI_RESPONSE + greeting, flush=True)
+    send_chat_message("ai", greeting)
+    remember("Agent", greeting)   # so the AI knows it already said hello
+    tts_speaker.speak(greeting)
+
+
 def listen():
     global _current_language
-    # Pull fresh config + AI settings at the start of each call.
+    # Pull fresh config + AI settings + call context at the start of each call.
     refresh_config()
     refresh_ai_settings()
+    refresh_call_context()
+    reset_conversation()
     _current_language = runtime.language
     print(f"[stt_sender] starting with language={_current_language}", flush=True)
+    _speak_greeting()
     _start_listener()
     try:
         while True:

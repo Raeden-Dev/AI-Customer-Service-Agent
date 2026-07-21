@@ -1,4 +1,4 @@
-package com.ulab.agent.ai;
+package com.ulab.agent.api;
 
 import com.ulab.agent.managers.AISettingsManager;
 import com.ulab.agent.models.AISettings;
@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * GET/POST /api/ai-settings — the AI persona of the active business
+ * (model name, role instructions, reply instructions, organization info).
+ */
 @RestController
 @RequestMapping("/api")
 public class AISettingsController {

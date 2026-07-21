@@ -13,6 +13,8 @@ JAVA_URL = JAVA_BASE_URL + "/transcript"
 AI_SETTINGS_URL = JAVA_BASE_URL + "/ai-settings"
 CHAT_MESSAGE_URL = JAVA_BASE_URL + "/chat-message"
 CONFIG_URL = JAVA_BASE_URL + "/config"
+CALL_CONTEXT_URL = JAVA_BASE_URL + "/call-context"   # mode + business/client info for the AI
+CALL_MODE_URL = JAVA_BASE_URL + "/call-mode"         # report a mode switch back to Java
 
 
 # --- Runtime config, filled in by refresh_config() ---
@@ -29,6 +31,12 @@ class Runtime:
         self.phrase_threshold = 0.3
         self.non_speaking_duration = 0.5
         self.ambient_noise_adjustment = 3.0
+
+        # Text-to-speech (the AI's voice). See tts_speaker.py.
+        self.tts_enabled = True
+        self.tts_rate = 170       # words per minute
+        self.tts_volume = 1.0     # 0.0 .. 1.0
+        self.tts_voice = ""       # part of a voice name, "" = system default
 
         # code -> {"name", "aliases", "pleaseWait", "ready"}
         self.supported_languages = {}
@@ -56,6 +64,12 @@ def refresh_config():
     runtime.phrase_threshold = float(data.get("phraseThreshold", runtime.phrase_threshold))
     runtime.non_speaking_duration = float(data.get("nonSpeakingDuration", runtime.non_speaking_duration))
     runtime.ambient_noise_adjustment = float(data.get("ambientNoiseAdjustment", runtime.ambient_noise_adjustment))
+
+    runtime.tts_enabled = bool(data.get("ttsEnabled", runtime.tts_enabled))
+    runtime.tts_rate = int(data.get("ttsRate", runtime.tts_rate))
+    runtime.tts_volume = float(data.get("ttsVolume", runtime.tts_volume))
+    runtime.tts_voice = data.get("ttsVoice", runtime.tts_voice) or ""
+
     runtime.supported_languages = data.get("supportedLanguages", runtime.supported_languages) or {}
     return True
 
@@ -84,6 +98,11 @@ AI_CONNECTION_ERROR = "Sorry, I encountered an error connecting to the AI."
 AI_RESPONSE = "[AI RESPONSE]: "
 AI_SETTINGS_LOADED = "[AI] Loaded settings from Java backend."
 AI_SETTINGS_FAILED = "[AI] Could not reach Java for settings — using defaults."
+CALL_CONTEXT_LOADED = "[AI] Loaded call context (mode: {mode})."
+CALL_CONTEXT_FAILED = "[AI] Could not reach Java for call context — using defaults."
+MODE_REPORTED = "[AI] Reported mode switch to Java: {mode}"
+TTS_ERROR = "[TTS] Could not speak the reply:"
+CALL_FORWARDED_LOCAL = "[stt_sender] Call forwarded to a human agent — AI replies are now off."
 CONFIG_LOADED = "[config] Loaded runtime config from Java."
 CONFIG_FAILED = "[config] Could not reach Java for config — using defaults."
 

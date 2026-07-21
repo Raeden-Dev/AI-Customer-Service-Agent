@@ -4,6 +4,10 @@ import com.ulab.agent.Main;
 
 import java.nio.file.Path;
 
+/**
+ * Builds the paths of every file inside a business folder
+ * (data/businesses/<name>/...), with the name sanitized for the filesystem.
+ */
 public class PathUtils {
     public static String sanitize(String name) {
         if (name == null || name.isBlank()) return "unnamed";
@@ -24,6 +28,14 @@ public class PathUtils {
 
     public static Path callHistoryFile(String businessName) {
         return businessDir(businessName).resolve("call-history.json");
+    }
+
+    public static Path intelligenceFile(String businessName) {
+        return businessDir(businessName).resolve("intelligence.json");
+    }
+
+    public static Path clientsFile(String businessName) {
+        return businessDir(businessName).resolve("clients.json");
     }
 
     public static Path transcriptsDir(String businessName) {

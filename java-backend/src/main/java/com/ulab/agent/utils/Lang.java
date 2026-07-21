@@ -22,8 +22,11 @@ public class Lang {
     public static final String HELP_BUSINESSES     = "  businesses               List registered businesses";
     public static final String HELP_ADD_BUSINESS   = "  add-business <name>      Register a new business";
     public static final String HELP_USE_BUSINESS   = "  use <name>               Set the active business";
-    public static final String HELP_START_CALL     = "  start-call               Start a call for the active business";
+    public static final String HELP_START_CALL     = "  start-call [client_id]   Start a call (with a client id = existing customer)";
     public static final String HELP_END_CALL       = "  end-call                 End the active call";
+    public static final String HELP_CLIENTS        = "  clients                  List clients of the active business";
+    public static final String HELP_INTEL          = "  intel                    Show what the AI knows about the active business";
+    public static final String HELP_SET_MODE       = "  set-mode <mode>          Force the call mode (new_customer, existing_customer, wrong_number, complex_request)";
     public static final String HELP_AI             = "  ai                       Show AI settings of the active business";
     public static final String HELP_CONFIG         = "  config                   Show global config";
     public static final String HELP_REFRESH        = "  refresh                  Reload config and data from disk";
@@ -44,6 +47,13 @@ public class Lang {
     public static final String CALL_ENDED = "Call %s ended.";
     public static final String FINAL_TRANSCRIPT_LINE = "Final transcript: %s";
     public static final String UNKNOWN_COMMAND = "Unknown command: %s (type 'help')";
+    public static final String CLIENT_NOT_FOUND = "Client '%s' not found. Type 'clients' to see the list.";
+    public static final String CALLING_AS_CLIENT = "Caller identified as client: %s (%s)";
+    public static final String NO_CLIENTS = "No clients registered. Add them in %s";
+    public static final String CLIENTS_HEADER = "Clients of %s:";
+    public static final String USAGE_SET_MODE = "Usage: set-mode <new_customer | existing_customer | wrong_number | complex_request>";
+    public static final String MODE_SET = "Call mode set to: %s";
+    public static final String MODE_SET_FAILED = "Could not change mode (is a call active?).";
     public static final String SHUTDOWN_NOTICE = "Shutting down...";
     public static final String REFRESH_STARTED = "Refreshing config and data from disk...";
     public static final String REFRESH_DONE = "Refresh complete.";
@@ -70,4 +80,12 @@ public class Lang {
     public static final String TRANSCRIPT_WRITE_FAIL = "[CallManager] Failed to write transcript: %s";
     public static final String AI_SETTINGS_READY = "[AISettingsManager] Ready. Model = %s.";
     public static final String CONFIG_LOADED = "[ConfigManager] Loaded config (debugLevel=%d).";
+    public static final String INTELLIGENCE_LOADED = "[IntelligenceManager] Loaded %d client(s) for the active business.";
+
+    // -------- Call modes & greetings --------
+    public static final String CALL_MODE_LINE = "[CallManager] Call mode: %s.";
+    public static final String CALL_MODE_CHANGED = "Call mode changed to '%s' (%s).";
+    public static final String CALL_FORWARDED = "Call forwarded to a human agent (simulated). The AI will stop replying.";
+    public static final String GREETING_NEW_CUSTOMER = "Thank you for calling %s! How can I help you today?";
+    public static final String GREETING_EXISTING_CUSTOMER = "Hello %s, welcome back to %s! How can I help you today?";
 }

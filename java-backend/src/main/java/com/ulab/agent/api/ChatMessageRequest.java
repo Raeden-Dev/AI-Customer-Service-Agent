@@ -1,5 +1,6 @@
-package com.ulab.agent.stt;
+package com.ulab.agent.api;
 
+/** Request body of POST /api/chat-message. */
 public class ChatMessageRequest {
     private String role;    // "user", "ai", "system"
     private String content;

@@ -1,10 +1,12 @@
 package com.ulab.agent.managers;
 
 import com.ulab.agent.Main;
+import com.ulab.agent.ai.CallMode;
 import com.ulab.agent.models.Business;
 import com.ulab.agent.models.Call;
 import com.ulab.agent.models.CallHistory;
 import com.ulab.agent.models.ChatMessage;
+import com.ulab.agent.models.Client;
 import com.ulab.agent.utils.FileUtils;
 import com.ulab.agent.utils.Lang;
 import com.ulab.agent.utils.PathUtils;
@@ -23,6 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The live-call engine. Starts/ends calls, keeps the state of the active call
+ * (mode, client, greeting), records every chat message, launches the Python
+ * speech process, and archives everything when the call ends.
+ */
 @Component
 public class CallManager {
 
@@ -32,6 +39,9 @@ public class CallManager {
 
     private Call activeCall;
     private Business callBusiness;      // Which business owns activeCall (for saving to the right dir).
+    private CallMode activeMode;        // Which scenario the active call is in.
+    private Client activeClient;        // The client record when mode = EXISTING_CUSTOMER, else null.
+    private String greeting;            // Opening line Python speaks when the call starts.
     private Process sttProcess;
 
     public CallManager(BusinessManager businessManager) {
@@ -59,13 +69,27 @@ public class CallManager {
 
     public synchronized Call getActiveCall() { return activeCall; }
 
+    public synchronized CallMode getActiveMode() { return activeMode; }
+
+    public synchronized Client getActiveClient() { return activeClient; }
+
+    public synchronized String getGreeting() { return greeting; }
+
     public synchronized CallHistory getActiveHistory() {
         Business active = businessManager.getActiveBusiness();
         if (active == null) return new CallHistory();
         return loadHistory(active.getBusinessName());
     }
 
-    public synchronized Call startCall(String agentId, String customerId, String callType) {
+    /**
+     * Starts a call for the active business.
+     *
+     * @param agentId  reserved for a future human-agent id, pass null for now
+     * @param callType "inbound" or "outbound"
+     * @param mode     the starting scenario: NEW_CUSTOMER, or EXISTING_CUSTOMER when a client id was given
+     * @param client   the client record for EXISTING_CUSTOMER calls, null otherwise
+     */
+    public synchronized Call startCall(String agentId, String callType, CallMode mode, Client client) {
         if (activeCall != null) {
             Main.console.warn(String.format(Lang.CALL_ALREADY_ACTIVE, activeCall.getCallId()));
             return activeCall;
@@ -76,17 +100,53 @@ public class CallManager {
             return null;
         }
         callBusiness = active;
+        activeMode = (mode != null) ? mode : CallMode.NEW_CUSTOMER;
+        activeClient = client;
+        greeting = buildGreeting(activeMode, active.getBusinessName(), client);
 
         Call call = new Call();
         call.setAgentId(agentId);
-        call.setCustomerId(customerId);
+        call.setCustomerId(client != null ? client.getClientId() : "unknown");
         call.setCallType(callType);
+        call.setCallMode(activeMode.name());
         call.setStartTime(TimeUtils.getTimeNow());
         activeCall = call;
 
         Main.console.info(String.format(Lang.CALL_STARTED, call.getCallId()));
+        Main.console.info(String.format(Lang.CALL_MODE_LINE, activeMode.getDisplayName()));
         launchSttProcess();
         return call;
+    }
+
+    /**
+     * Switches the active call to another scenario (mid-call).
+     * Called when the AI flags a [MODE:...] tag, or by the operator's set-mode command.
+     * For COMPLEX_REQUEST we also announce the (simulated) hand-over to a human agent.
+     */
+    public synchronized boolean changeMode(CallMode newMode, String source) {
+        if (activeCall == null || newMode == null) {
+            Main.console.warn(Lang.CALL_NO_ACTIVE);
+            return false;
+        }
+        if (newMode == activeMode) return true;   // nothing to do
+
+        activeMode = newMode;
+        activeCall.setCallMode(newMode.name());
+        handleChatMessage(ChatMessage.Role.SYSTEM,
+                String.format(Lang.CALL_MODE_CHANGED, newMode.getDisplayName(), source));
+
+        if (newMode == CallMode.COMPLEX_REQUEST) {
+            handleChatMessage(ChatMessage.Role.SYSTEM, Lang.CALL_FORWARDED);
+        }
+        return true;
+    }
+
+    /** Builds the opening line the AI speaks when the call starts. */
+    private String buildGreeting(CallMode mode, String businessName, Client client) {
+        if (mode == CallMode.EXISTING_CUSTOMER && client != null && client.getName() != null) {
+            return String.format(Lang.GREETING_EXISTING_CUSTOMER, client.getName(), businessName);
+        }
+        return String.format(Lang.GREETING_NEW_CUSTOMER, businessName);
     }
 
     public synchronized Call endCall() {
@@ -109,6 +169,9 @@ public class CallManager {
         Call finished = activeCall;
         activeCall = null;
         callBusiness = null;
+        activeMode = null;
+        activeClient = null;
+        greeting = null;
         Main.console.info(String.format(Lang.CALL_ENDED_LOG, finished.getCallId()));
         return finished;
     }
@@ -171,6 +234,7 @@ public class CallManager {
         sb.append("Agent:    ").append(nullSafe(call.getAgentId())).append('\n');
         sb.append("Customer: ").append(nullSafe(call.getCustomerId())).append('\n');
         sb.append("Type:     ").append(nullSafe(call.getCallType())).append('\n');
+        sb.append("Mode:     ").append(nullSafe(call.getCallMode())).append('\n');
 
         sb.append('\n').append("--- CONVERSATION ---\n");
         for (ChatMessage m : call.getMessages()) {

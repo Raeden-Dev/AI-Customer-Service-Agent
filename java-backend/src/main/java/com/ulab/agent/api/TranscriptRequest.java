@@ -1,5 +1,6 @@
-package com.ulab.agent.stt;
+package com.ulab.agent.api;
 
+/** Request body of POST /api/transcript. */
 public class TranscriptRequest {
     private String transcript;
     private String translatedTranscript;

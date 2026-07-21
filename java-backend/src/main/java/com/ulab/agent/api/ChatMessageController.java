@@ -1,4 +1,4 @@
-package com.ulab.agent.stt;
+package com.ulab.agent.api;
 
 import com.ulab.agent.managers.CallManager;
 import com.ulab.agent.models.ChatMessage;
@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * POST /api/chat-message — the live conversation channel.
+ * Python sends one POST per line: the user's words, the AI's reply,
+ * and system notices. Everything lands in CallManager.handleChatMessage().
+ */
 @RestController
 @RequestMapping("/api")
 public class ChatMessageController {

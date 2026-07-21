@@ -1,0 +1,28 @@
+v0.1
+============
+- Speech recognition feature added, very sturdy and needed fine tuning
+- No java implementation yet, only python
+
+v0.15
+============
+- Improved Speech recognition feature, added listener for java as well
+
+v0.2
+============
+- AI replies (and the opening greeting) are now spoken out loud via text-to-speech
+  (pyttsx3, offline). New config fields: ttsEnabled, ttsRate, ttsVolume, ttsVoice.
+- Per-business knowledge base: data/businesses/<name>/intelligence.json
+  (about, services, policies, FAQs). The AI uses it as context on every call.
+- Per-client intelligence: data/businesses/<name>/clients.json. Start a call as a
+  known client with "start-call <client_id>" (e.g. start-call C001).
+- Four call modes: NEW_CUSTOMER, EXISTING_CUSTOMER, WRONG_NUMBER, COMPLEX_REQUEST.
+  Mode is picked at call start; the AI can switch mid-call using [MODE:...] tags;
+  COMPLEX_REQUEST simulates forwarding the call to a human agent (AI goes quiet).
+- The AI now remembers the conversation during a call (last 20 lines) and greets
+  the caller when the call starts.
+- New console commands: clients, intel, set-mode. start-call takes an optional client id.
+- New REST endpoints: GET /api/call-context, POST /api/call-mode.
+- Cleanup: all REST controllers moved into the api package; removed the unused
+  Instructions enum and Organization model; documentation comments everywhere.
+- README rewritten with full setup + usage docs; report_dashboard.html rewritten
+  in plain language.
