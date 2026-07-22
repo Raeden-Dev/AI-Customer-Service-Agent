@@ -19,6 +19,10 @@ public class ConfigManager {
 
     public void reload() {
         FileUtils.createDirectory(Main.DATA_DIRECTORY, false);
+        // Make sure config.json exists and has every key we expect. This adds new
+        // keys like "defaultBusinessDetails" to older config files without changing
+        // any values the user has already set.
+        FileUtils.updateJsonFile("config.json", Main.CONFIG_FILE, Config.defaults(), false);
         Config loaded = FileUtils.loadJsonFile("config.json", Main.CONFIG_FILE, Config.class, true);
         if (loaded == null) {
             config = Config.defaults();

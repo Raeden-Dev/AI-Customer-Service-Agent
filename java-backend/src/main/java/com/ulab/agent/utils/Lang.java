@@ -22,7 +22,7 @@ public class Lang {
     public static final String HELP_BUSINESSES     = "  businesses               List registered businesses";
     public static final String HELP_ADD_BUSINESS   = "  add-business <name>      Register a new business";
     public static final String HELP_USE_BUSINESS   = "  use <name>               Set the active business";
-    public static final String HELP_START_CALL     = "  start-call [client_id]   Start a call (with a client id = existing customer)";
+    public static final String HELP_START_CALL     = "  start-call [id/name]     Call a client id (existing customer), a business name (redirect), or nothing (new customer)";
     public static final String HELP_END_CALL       = "  end-call                 End the active call";
     public static final String HELP_CLIENTS        = "  clients                  List clients of the active business";
     public static final String HELP_INTEL          = "  intel                    Show what the AI knows about the active business";
@@ -48,6 +48,8 @@ public class Lang {
     public static final String FINAL_TRANSCRIPT_LINE = "Final transcript: %s";
     public static final String UNKNOWN_COMMAND = "Unknown command: %s (type 'help')";
     public static final String CLIENT_NOT_FOUND = "Client '%s' not found. Type 'clients' to see the list.";
+    public static final String CALL_TARGET_NOT_FOUND = "No client or business found matching '%s'. Type 'clients' or 'businesses' to see the lists.";
+    public static final String CALL_REDIRECT_BUSINESS = "Calling business %s... redirecting to their number: %s (number dialing is skipped for now).";
     public static final String CALLING_AS_CLIENT = "Caller identified as client: %s (%s)";
     public static final String NO_CLIENTS = "No clients registered. Add them in %s";
     public static final String CLIENTS_HEADER = "Clients of %s:";

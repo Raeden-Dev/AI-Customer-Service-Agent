@@ -139,9 +139,7 @@ public class ConsoleTerminal {
             System.out.println(Lang.USAGE_ADD_BUSINESS);
             return;
         }
-        BusinessDetails details = new BusinessDetails();
-        details.setBusinessName(arg);
-        Business b = businesses.addBusiness(arg, details);
+        Business b = businesses.addBusiness(arg);
         System.out.println(String.format(Lang.BUSINESS_REGISTERED, b.getBusinessName()));
     }
 
@@ -162,32 +160,66 @@ public class ConsoleTerminal {
     }
 
     /**
-     * start-call            -> caller is treated as a NEW customer
-     * start-call <clientId> -> caller is that client (EXISTING customer mode)
+     * start-call                 -> caller is treated as a NEW customer
+     * start-call <client_id>     -> call that client of the active business (EXISTING customer)
+     * start-call <business_name> -> "call" a business: redirect to its own phone number
+     *                               (the number dialing itself is skipped for now)
      */
-    private void startCall(String clientId) {
-        if (businesses.getActiveBusiness() == null) {
-            System.out.println(Lang.NO_ACTIVE_BUSINESS);
+    private void startCall(String target) {
+        Business active = businesses.getActiveBusiness();
+
+        // No target: a brand-new customer is calling the active business.
+        if (target.isEmpty()) {
+            if (active == null) {
+                System.out.println(Lang.NO_ACTIVE_BUSINESS);
+                return;
+            }
+            startAiCall(CallMode.NEW_CUSTOMER, null);
             return;
         }
 
-        CallMode mode = CallMode.NEW_CUSTOMER;
-        Client client = null;
-        if (!clientId.isEmpty()) {
-            client = intelligence.findClientOfActiveBusiness(clientId);
-            if (client == null) {
-                System.out.println(String.format(Lang.CLIENT_NOT_FOUND, clientId));
+        // A target was given. First see if it is a client of the active business.
+        if (active != null) {
+            Client client = intelligence.findClientOfActiveBusiness(target);
+            if (client != null) {
+                System.out.println(String.format(Lang.CALLING_AS_CLIENT, client.getName(), client.getClientId()));
+                startAiCall(CallMode.EXISTING_CUSTOMER, client);
                 return;
             }
-            mode = CallMode.EXISTING_CUSTOMER;
-            System.out.println(String.format(Lang.CALLING_AS_CLIENT, client.getName(), client.getClientId()));
         }
 
+        // Not a client, so see if the target is a business name -> redirect the call.
+        Business calledBusiness = businesses.getBusiness(target);
+        if (calledBusiness != null) {
+            redirectToBusiness(calledBusiness);
+            return;
+        }
+
+        System.out.println(String.format(Lang.CALL_TARGET_NOT_FOUND, target));
+    }
+
+    /** Starts an AI-answered call in the given mode and prints the usage hints. */
+    private void startAiCall(CallMode mode, Client client) {
         Call c = calls.startCall(null, "inbound", mode, client);
         if (c != null) {
             System.out.println(String.format(Lang.CALL_ACTIVE_HINT, c.getCallId()));
             System.out.println(Lang.CALL_END_HINT);
         }
+    }
+
+    /**
+     * "Calling" a business does not start the AI. Instead it would forward the
+     * call to the business's own phone number. For now we only print where it
+     * would be redirected — the actual number dialing is skipped.
+     */
+    private void redirectToBusiness(Business business) {
+        String number = "(no number set)";
+        BusinessDetails details = business.getBusinessDetails();
+        if (details != null && details.getTelephoneNumber() != null
+                && !details.getTelephoneNumber().isEmpty()) {
+            number = details.getTelephoneNumber().get(0);
+        }
+        System.out.println(String.format(Lang.CALL_REDIRECT_BUSINESS, business.getBusinessName(), number));
     }
 
     /** Lists the clients of the active business (id, name, account type). */

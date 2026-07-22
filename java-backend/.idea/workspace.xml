@@ -32,12 +32,12 @@
     &quot;assignee&quot;: &quot;Raeden-Dev&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Raeden-Dev/AI-Customer-Service-Agent.git&quot;,
-    &quot;accountId&quot;: &quot;c5f39ba4-4799-425d-aa5c-69b1b24299ab&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Raeden-Dev/AI-Customer-Service-Agent.git",
+    "accountId": "5bc18f0a-8222-4f1c-b962-b86d2707e710"
   }
-}</component>
+}]]></component>
   <component name="MavenImportPreferences">
     <option name="explicitlyEnabledProfiles" value="native,nativeTest" />
   </component>
@@ -63,22 +63,22 @@
   <component name="ProjectViewState">
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.Main.executor": "Run",
-    "Maven.java-backend [clean].executor": "Run",
-    "Maven.java-backend [compile].executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "copilot.chat.legacySessionMetadata.migrated": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "F:/3.GitHub_ORS/AI-Customer-Service-Agent/java-backend",
-    "onboarding.tips.debug.path": "F:/3.GitHub_ORS/AI-Customer-Service-Agent/java-backend/src/main/java/com/ulab/agent/Main.java",
-    "settings.editor.selected.configurable": "copyright"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Maven.java-backend [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.java-backend [compile].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;copilot.chat.legacySessionMetadata.migrated&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;F:/3.GitHub_ORS/AI-Customer-Service-Agent/java-backend&quot;,
+    &quot;onboarding.tips.debug.path&quot;: &quot;F:/3.GitHub_ORS/AI-Customer-Service-Agent/java-backend/src/main/java/com/ulab/agent/Main.java&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;copyright&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.ulab.agent.Main" />
@@ -99,6 +99,7 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="5dc0b925-1abb-4bd5-8255-8a97fcd96b03" name="Changes" comment="" />

@@ -34,5 +34,25 @@
       "pleaseWait": "Please wait a few seconds while I switch to English...",
       "ready": "Ready! You can now speak in English."
     }
+  },
+  "pythonListenerDebug": true,
+  "defaultBusinessDetails": {
+    "businessName": "",
+    "businessAddress": "123 Example Road, Dhaka",
+    "telephoneNumber": [
+      "+8800000000000"
+    ],
+    "emailAddress": "business@example.com",
+    "website": "https://example.com",
+    "businessDescription": "Short description of what this business does.",
+    "businessCategory": "General",
+    "businessOwner": "Owner Name",
+    "ownerTelephoneNumbers": [
+      "+8800000000000"
+    ],
+    "businessHours": "Sat-Thu 10am-8pm, Friday closed",
+    "socialLinks": [
+      "https://facebook.com/example"
+    ]
   }
 }

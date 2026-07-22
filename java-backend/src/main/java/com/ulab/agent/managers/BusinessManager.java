@@ -1,8 +1,12 @@
 package com.ulab.agent.managers;
 
 import com.ulab.agent.Main;
+import com.ulab.agent.models.AISettings;
 import com.ulab.agent.models.Business;
 import com.ulab.agent.models.BusinessDetails;
+import com.ulab.agent.models.BusinessIntelligence;
+import com.ulab.agent.models.CallHistory;
+import com.ulab.agent.models.ClientDatabase;
 import com.ulab.agent.utils.FileUtils;
 import com.ulab.agent.utils.Lang;
 import com.ulab.agent.utils.PathUtils;
@@ -26,6 +30,14 @@ public class BusinessManager {
     // Keyed by businessName (case-insensitive lookup wrapper below).
     private final Map<String, Business> businesses = new LinkedHashMap<>();
     private Business activeBusiness;
+
+    // Needed so a new business can be pre-filled with the placeholder details
+    // the user keeps in config.json.
+    private final ConfigManager configManager;
+
+    public BusinessManager(ConfigManager configManager) {
+        this.configManager = configManager;
+    }
 
     @PostConstruct
     public void init() {
@@ -67,13 +79,57 @@ public class BusinessManager {
         return Collections.unmodifiableList(new ArrayList<>(businesses.values()));
     }
 
-    public Business addBusiness(String name, BusinessDetails details) {
+    public Business addBusiness(String name) {
         String id = UUID.randomUUID().toString();
+        BusinessDetails details = buildPlaceholderDetails(name);
         Business business = new Business(id, name, details, TimeUtils.getTimeNow());
         businesses.put(name.toLowerCase(), business);
         save(business);
+        createStarterFiles(name);
         Main.console.info(String.format(Lang.BUSINESS_ADDED, name));
         return business;
+    }
+
+    /**
+     * Copies the placeholder businessDetails from config.json and puts the real
+     * business name on it. We make a fresh copy (via JSON) so every business gets
+     * its own object instead of all sharing the one in the config.
+     */
+    private BusinessDetails buildPlaceholderDetails(String name) {
+        BusinessDetails template = configManager.getConfig().getDefaultBusinessDetails();
+        if (template == null) template = BusinessDetails.placeholder();
+        BusinessDetails copy = Main.GSON.fromJson(Main.GSON.toJson(template), BusinessDetails.class);
+        copy.setBusinessName(name);
+        return copy;
+    }
+
+    /**
+     * Writes the starter data files for a brand-new business so they exist right
+     * away (instead of only appearing later when something first reads them):
+     *   intelligence.json  — knowledge base template
+     *   clients.json       — one template client
+     *   ai-settings.json   — default AI settings
+     *   call-history.json  — empty history
+     */
+    private void createStarterFiles(String name) {
+        FileUtils.createDirectory(PathUtils.businessDir(name), false);
+
+        if (!Files.exists(PathUtils.intelligenceFile(name))) {
+            FileUtils.saveJsonFile("intelligence.json", PathUtils.intelligenceFile(name),
+                    BusinessIntelligence.template(), false);
+        }
+        if (!Files.exists(PathUtils.clientsFile(name))) {
+            FileUtils.saveJsonFile("clients.json", PathUtils.clientsFile(name),
+                    ClientDatabase.template(), false);
+        }
+        if (!Files.exists(PathUtils.aiSettingsFile(name))) {
+            FileUtils.saveJsonFile("ai-settings.json", PathUtils.aiSettingsFile(name),
+                    AISettings.defaults(), false);
+        }
+        if (!Files.exists(PathUtils.callHistoryFile(name))) {
+            FileUtils.saveJsonFile("call-history.json", PathUtils.callHistoryFile(name),
+                    new CallHistory(), false);
+        }
     }
 
     public boolean removeBusiness(String name) {

@@ -34,6 +34,11 @@ public class Config {
     // --- Language switching (spoken by user, matched by Python) ---
     private Map<String, LanguageOption> supportedLanguages = new LinkedHashMap<>();
 
+    // --- New-business placeholders ---
+    // Copied into a business's businessDetails when it is first created.
+    // Edit these in config.json to change what a fresh business starts with.
+    private BusinessDetails defaultBusinessDetails = BusinessDetails.placeholder();
+
     public static Config defaults() {
         Config c = new Config();
         c.supportedLanguages.put("bn-BD", new LanguageOption(
@@ -92,6 +97,9 @@ public class Config {
 
     public Map<String, LanguageOption> getSupportedLanguages() { return supportedLanguages; }
     public void setSupportedLanguages(Map<String, LanguageOption> supportedLanguages) { this.supportedLanguages = supportedLanguages; }
+
+    public BusinessDetails getDefaultBusinessDetails() { return defaultBusinessDetails; }
+    public void setDefaultBusinessDetails(BusinessDetails defaultBusinessDetails) { this.defaultBusinessDetails = defaultBusinessDetails; }
 
     public boolean isPythonListenerDebug() {
         return pythonListenerDebug;
